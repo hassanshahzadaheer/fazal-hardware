@@ -1,0 +1,1440 @@
+{
+  "TBL_CARPENTER": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "CHAR(45)"
+    },
+    {
+      "name": "MOBILE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "ADDRESS",
+      "type": "VARCHAR2(100)"
+    }
+  ],
+  "TBL_CASHBALANCE": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "INVOICENO",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "INVOICEDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "CUSTOMER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "REFERENCE",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "INVOICEVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "PAYMENT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(12, 2)"
+    }
+  ],
+  "TBL_CATEGORY": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(45)"
+    },
+    {
+      "name": "RATEPERCENT",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "POINTPER",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "POINTVALUE",
+      "type": "NUMBER(4, 0)"
+    }
+  ],
+  "TBL_CHART": [
+    {
+      "name": "SYSTEMID",
+      "type": "VARCHAR2(8)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(45)"
+    },
+    {
+      "name": "AGROUP",
+      "type": "VARCHAR2(4)"
+    },
+    {
+      "name": "NATURE",
+      "type": "CHAR(1)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(9, 0)"
+    }
+  ],
+  "TBL_CITY": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(45)"
+    }
+  ],
+  "TBL_COLOR": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(45)"
+    },
+    {
+      "name": "REM",
+      "type": "CHAR(4)"
+    }
+  ],
+  "TBL_COMPANY": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "CONTACT",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "TELEPHONE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "MOBILE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "FAX",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "EMAIL",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "ADDRESS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(12, 2)"
+    }
+  ],
+  "TBL_CUSTOMER": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "CONTACT",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "TELEPHONE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "MOBILE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "FAX",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "EMAIL",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "CITY",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "ADDRESS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "CREDITLIMIT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "CHK1",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "CLUBCHK",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "POINTS",
+      "type": "NUMBER(6, 0)"
+    },
+    {
+      "name": "NIC",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "FNAME",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "CUSTOMER_PICTURE",
+      "type": "CHAR(100)"
+    }
+  ],
+  "TBL_CUSTOMERANALYSIS": [
+    {
+      "name": "YEAR",
+      "type": "CHAR(4)"
+    },
+    {
+      "name": "CUSTOMER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "JAN1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "JAN2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "FEB1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "FEB2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "MAR1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "MAR2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "APR1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "APR2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "MAY1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "MAY2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "JUN1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "JUN2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "JUL1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "JUL2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "AUG1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "AUG2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "SEP1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "SEP2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "OCT1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "OCT2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "NOV1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "NOV2",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "DEC1",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "DEC2",
+      "type": "NUMBER(8, 0)"
+    }
+  ],
+  "TBL_CUSTOMERLEDGER": [
+    {
+      "name": "DOCNO",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DOCTYPE",
+      "type": "CHAR(5)"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CHEQUENO",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "CHEQUEDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DEBIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "CREDIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "AGEING",
+      "type": "NUMBER(4, 0)"
+    }
+  ],
+  "TBL_CUSTOMER_PAYMENT": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CHEQUENO",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "CHEQUEDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DEBIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "CREDIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    }
+  ],
+  "TBL_DEFAULT": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "COMPANYNAME",
+      "type": "VARCHAR2(75)"
+    },
+    {
+      "name": "ADDRESS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "LANDLINE",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "CELLNO1",
+      "type": "CHAR(15)"
+    },
+    {
+      "name": "CELLNO2",
+      "type": "CHAR(15)"
+    },
+    {
+      "name": "LOGO",
+      "type": "VARCHAR2(100)"
+    }
+  ],
+  "TBL_DELMAN": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(45)"
+    }
+  ],
+  "TBL_EXPENSES": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "DESCRIPTION",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "EXPDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "AMOUNT",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "ACCOUNTNO",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "YESNO",
+      "type": "NUMBER(1, 0)"
+    }
+  ],
+  "TBL_EXPHEADS": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(45)"
+    }
+  ],
+  "TBL_ISSUE": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "CUSTOMER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "REFERENCE",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "NETVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    },
+    {
+      "name": "INVUSER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "CHK1",
+      "type": "CHAR(1)"
+    },
+    {
+      "name": "CHK2",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "CELLNO",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "FREIGHT",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "DISCPER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "DISCCOUNT",
+      "type": "NUMBER(8, 2)"
+    },
+    {
+      "name": "PAYMENT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "CNIC",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "DRIVER",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "CARPENTER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "QUOTNO",
+      "type": "NUMBER(7, 0)"
+    }
+  ],
+  "TBL_ISSUECHECK": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(8, 0)"
+    },
+    {
+      "name": "PRODUCTID",
+      "type": "CHAR(32)"
+    }
+  ],
+  "TBL_ISSUERET": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "CUSTOMER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "REFERENCE",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "NETVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    },
+    {
+      "name": "INVUSER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "FREIGHT",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "DISCPER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "DISCCOUNT",
+      "type": "NUMBER(8, 2)"
+    }
+  ],
+  "TBL_ISSUERET_DETAIL": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "PRODUCTID",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "SALE_PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "ISSUEVALUE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "NETVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    }
+  ],
+  "TBL_ISSUE_DETAIL": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "PRODUCTID",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "SALE_PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "ISSUEVALUE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "NETVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "SALETYPE",
+      "type": "CHAR(3)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    }
+  ],
+  "TBL_LABELS": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "FNAME",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "NIC",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "TELEPHONE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "MOBILE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "ADDRESS",
+      "type": "CHAR(100)"
+    },
+    {
+      "name": "CLUBCHK",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "BSYSTEMID",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "BNAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "BFNAME",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "BNIC",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "BTELEPHONE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "BMOBILE",
+      "type": "CHAR(30)"
+    },
+    {
+      "name": "BADDRESS",
+      "type": "CHAR(100)"
+    },
+    {
+      "name": "CUSTOMER_PICTURE",
+      "type": "CHAR(100)"
+    },
+    {
+      "name": "BCUSTOMER_PICTURE",
+      "type": "CHAR(100)"
+    }
+  ],
+  "TBL_MENUOPTIONS": [
+    {
+      "name": "ID",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "OPTIONNAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "PATH",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "CHK",
+      "type": "CHAR(1)"
+    }
+  ],
+  "TBL_OPENING": [
+    {
+      "name": "SYSTEMID",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "AMOUNT",
+      "type": "NUMBER(9, 2)"
+    }
+  ],
+  "TBL_PORDER_DETAIL": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "CODE",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "AMOUNT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "RECEIVED",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    }
+  ],
+  "TBL_PORDER_MASTER": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "PDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "ORDERAMT",
+      "type": "NUMBER(11, 3)"
+    }
+  ],
+  "TBL_PRODLEDGER": [
+    {
+      "name": "ORDERNO",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DOCTYPE",
+      "type": "CHAR(5)"
+    },
+    {
+      "name": "INVOICENO",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "CUSTOMER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CODE",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(8, 2)"
+    },
+    {
+      "name": "PRICE",
+      "type": "NUMBER(8, 2)"
+    },
+    {
+      "name": "AMOUNT",
+      "type": "NUMBER(11, 3)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "FREIGHT",
+      "type": "NUMBER(5, 0)"
+    }
+  ],
+  "TBL_PRODPIC": [
+    {
+      "name": "SYSTEMID",
+      "type": "CHAR(32)"
+    },
+    {
+      "name": "PICTURE_PATH",
+      "type": "CHAR(75)"
+    }
+  ],
+  "TBL_PRODUCT": [
+    {
+      "name": "SYSTEMID",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "NAME",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "COMPANY",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "CATEGORY",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "COLOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "PACKSIZE",
+      "type": "VARCHAR2(20)"
+    },
+    {
+      "name": "PURPRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "SALEPRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "REORDER",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "BALANCE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "PICTURE_PATH",
+      "type": "CHAR(75)"
+    },
+    {
+      "name": "MINPRICE",
+      "type": "NUMBER(9, 2)"
+    }
+  ],
+  "TBL_QUOT": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "CUSTOMER",
+      "type": "NUMBER(4, 0)"
+    },
+    {
+      "name": "REFERENCE",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "NETVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "INVUSER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "CELLNO",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "FREIGHT",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "DISCPER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "DISCCOUNT",
+      "type": "NUMBER(8, 2)"
+    },
+    {
+      "name": "INVOICENO",
+      "type": "NUMBER(7, 0)"
+    }
+  ],
+  "TBL_QUOT_DETAIL": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "PRODUCTID",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "SALE_PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "ISSUEVALUE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "NETVALUE",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    }
+  ],
+  "TBL_RECEIPT_DETAIL": [
+    {
+      "name": "PORDER",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "CODE",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "AMOUNT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "FREIGHT",
+      "type": "NUMBER(5, 0)"
+    }
+  ],
+  "TBL_RECEIPT_MASTER": [
+    {
+      "name": "PORDER",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "PDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "RDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "TAG",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    },
+    {
+      "name": "INVVALUE",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "FREIGHT",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "DISCPER",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "DISCCOUNT",
+      "type": "NUMBER(8, 2)"
+    },
+    {
+      "name": "PAYMENT",
+      "type": "NUMBER(12, 2)"
+    }
+  ],
+  "TBL_RECRET_DETAIL": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "CODE",
+      "type": "VARCHAR2(32)"
+    },
+    {
+      "name": "QTY",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "PRICE",
+      "type": "NUMBER(9, 2)"
+    },
+    {
+      "name": "AMOUNT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "XLENGTH",
+      "type": "NUMBER(6, 2)"
+    },
+    {
+      "name": "XWIDTH",
+      "type": "NUMBER(6, 2)"
+    }
+  ],
+  "TBL_RECRET_MASTER": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "RDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "TAG",
+      "type": "NUMBER(1, 0)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    },
+    {
+      "name": "INVVALUE",
+      "type": "NUMBER(11, 2)"
+    }
+  ],
+  "TBL_USER": [
+    {
+      "name": "U_ID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "U_NAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "U_PASS",
+      "type": "VARCHAR2(15)"
+    }
+  ],
+  "TBL_USEROPTIONS": [
+    {
+      "name": "USERID",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "ID",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "OPTIONNAME",
+      "type": "VARCHAR2(50)"
+    },
+    {
+      "name": "PATH",
+      "type": "VARCHAR2(50)"
+    }
+  ],
+  "TBL_VENDORLEDGER": [
+    {
+      "name": "DOCNO",
+      "type": "NUMBER(10, 0)"
+    },
+    {
+      "name": "ORDERNO",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DOCTYPE",
+      "type": "CHAR(5)"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CHEQUENO",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "CHEQUEDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DEBIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "CREDIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    }
+  ],
+  "TBL_VENDOR_PAYMENT": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(5, 0)"
+    },
+    {
+      "name": "VENDOR",
+      "type": "NUMBER(3, 0)"
+    },
+    {
+      "name": "DOCDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "REMARKS",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CHEQUENO",
+      "type": "CHAR(20)"
+    },
+    {
+      "name": "CHEQUEDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DEBIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "CREDIT",
+      "type": "NUMBER(11, 2)"
+    },
+    {
+      "name": "GLOBALNO",
+      "type": "NUMBER(9, 0)"
+    }
+  ],
+  "TBL_VOUCHER": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "VDATE",
+      "type": "DATE"
+    }
+  ],
+  "TBL_VOUCHER_DETAIL": [
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "ACCODE",
+      "type": "VARCHAR2(8)"
+    },
+    {
+      "name": "NARRATION",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CHEQUE",
+      "type": "VARCHAR2(15)"
+    },
+    {
+      "name": "CHQDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "DEBIT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "CREDIT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "SERNO",
+      "type": "NUMBER(4, 0)"
+    }
+  ],
+  "TBL_VOUCHER_LEDGER": [
+    {
+      "name": "ACCODE",
+      "type": "VARCHAR2(8)"
+    },
+    {
+      "name": "SYSTEMID",
+      "type": "NUMBER(7, 0)"
+    },
+    {
+      "name": "VDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "NARRATION",
+      "type": "VARCHAR2(100)"
+    },
+    {
+      "name": "CHEQUE",
+      "type": "VARCHAR2(15)"
+    },
+    {
+      "name": "CHQDATE",
+      "type": "DATE"
+    },
+    {
+      "name": "OPENING",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "DEBIT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "CREDIT",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "CLOSING",
+      "type": "NUMBER(12, 2)"
+    },
+    {
+      "name": "SERNO",
+      "type": "NUMBER(7, 0)"
+    }
+  ]
+}

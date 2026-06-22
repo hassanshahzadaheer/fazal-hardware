@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-[#F7F8FA] text-[#111827];
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D1D5DB;
+}
+
+/* Dense form inputs style */
+input, select, textarea {
+  @apply focus:outline-none focus:ring-1 focus:ring-[#1F6B3B] focus:border-[#1F6B3B];
+}
+
+/* Tabular numbers for financial tables */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
