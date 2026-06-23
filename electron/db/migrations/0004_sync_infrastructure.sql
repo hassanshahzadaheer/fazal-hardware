@@ -42,27 +42,6 @@ CREATE INDEX idx_product_ledger_product ON product_ledger_items(product_id);
 CREATE INDEX idx_product_ledger_date ON product_ledger_items(transaction_date);
 CREATE INDEX idx_product_ledger_type ON product_ledger_items(transaction_type);
 
--- ===== Audit Trail =====
-
--- Complete audit log of all changes for compliance and troubleshooting
-CREATE TABLE IF NOT EXISTS audit_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER REFERENCES users(id),
-  action TEXT NOT NULL,              -- 'CREATE', 'UPDATE', 'DELETE', 'VOID', etc
-  entity_type TEXT NOT NULL,         -- Table name
-  entity_id INTEGER,
-  old_values JSON,                   -- Previous data (for UPDATE/DELETE)
-  new_values JSON,                   -- New data (for CREATE/UPDATE)
-  ip_address TEXT,
-  offline INTEGER DEFAULT 0,         -- Was this done offline?
-  synced_at TEXT,                    -- When it was synced to backend
-  created_at TEXT NOT NULL
-);
-
-CREATE INDEX idx_audit_log_user ON audit_log(user_id);
-CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
-CREATE INDEX idx_audit_log_created_at ON audit_log(created_at);
-
 -- ===== Settings for Offline Sync =====
 
 -- Track last sync times to support incremental/delta sync
