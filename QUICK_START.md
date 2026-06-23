@@ -46,7 +46,7 @@ npm run dev
 
 **Credentials**:
 - Username: `admin`
-- Password: `power`
+- Password: `admin123`
 
 ### Step 5: Navigate to Products
 

@@ -171,7 +171,7 @@ Electron app launches automatically
 
 ### Step 4: Login
 - **Username**: `admin`
-- **Password**: `power`
+- **Password**: `admin123`
 
 ### Step 5: Navigate to Products
 Click "Products Master" in the sidebar → See 15 products ready
