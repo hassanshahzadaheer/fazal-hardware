@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
 import { ProductWithNames, Supplier, PurchaseLineItem } from '../../../shared/types';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Button, Field, Input, Select } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -125,31 +126,32 @@ export default function NewPurchasePage() {
   return (
     <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-          <h2 className="font-semibold text-[#111827] mb-3">1. Add Products You Received</h2>
+        <div className="bg-surface border border-border rounded-md p-5">
+          <h2 className="font-semibold text-ink mb-3">1. Add Products You Received</h2>
           <div className="relative">
-            <input
+            <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or barcode…"
               autoFocus
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
+              className="pl-9"
             />
             {searchResults.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full bg-white border border-[#E5E7EB] rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              <ul className="absolute z-10 mt-1 w-full bg-surface border border-border rounded-md shadow-lg max-h-64 overflow-y-auto">
                 {searchResults.map((p) => (
                   <li
                     key={p.id}
                     onClick={() => addProduct(p)}
-                    className="px-3 py-2 flex items-center justify-between text-sm hover:bg-[#F7F8FA] cursor-pointer"
+                    className="px-3 py-2 flex items-center justify-between text-sm hover:bg-surface-sunken cursor-pointer"
                   >
                     <div>
-                      <div className="text-[#111827]">{p.name}</div>
-                      <div className="text-xs text-[#6B7280]">
+                      <div className="text-ink">{p.name}</div>
+                      <div className="text-xs text-ink-muted">
                         {p.stockOnHand} {p.baseUnit} in stock
                       </div>
                     </div>
-                    <span className="text-[#111827] font-medium">{formatPKR(p.costPrice ?? 0)}</span>
+                    <span className="text-ink font-medium">{formatPKR(p.costPrice ?? 0)}</span>
                   </li>
                 ))}
               </ul>
@@ -157,45 +159,49 @@ export default function NewPurchasePage() {
           </div>
         </div>
 
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-          <h2 className="font-semibold text-[#111827] px-5 pt-4 pb-2">2. Review Quantities & Prices</h2>
+        <div className="bg-surface border border-border rounded-md overflow-hidden">
+          <h2 className="font-semibold text-ink px-5 pt-4 pb-2">2. Review Quantities & Prices</h2>
           <table className="w-full text-sm">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280]">
+            <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
               <tr>
-                <th className="px-4 py-2 font-medium">Product</th>
-                <th className="px-4 py-2 font-medium w-28">Quantity</th>
-                <th className="px-4 py-2 font-medium w-28">Rate</th>
-                <th className="px-4 py-2 font-medium w-28">Total</th>
-                <th className="px-4 py-2 w-10" />
+                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Product</th>
+                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide w-28">Quantity</th>
+                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide w-28">Rate</th>
+                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide w-28">Total</th>
+                <th className="px-4 py-2.5 w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
+            <tbody className="divide-y divide-border">
               {lines.map((l) => (
-                <tr key={l._key}>
-                  <td className="px-4 py-2 text-[#111827]">
-                    {l.productName} <span className="text-xs text-[#6B7280]">({l.unit})</span>
+                <tr key={l._key} className="hover:bg-surface-sunken/60 transition-colors">
+                  <td className="px-4 py-2.5 text-ink">
+                    {l.productName} <span className="text-xs text-ink-muted">({l.unit})</span>
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       value={l.quantity}
                       onChange={(e) => updateLine(l._key, { quantity: Number(e.target.value) })}
-                      className={cellCls}
+                      className="w-20"
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       value={l.unitPrice}
                       onChange={(e) => updateLine(l._key, { unitPrice: Number(e.target.value) })}
-                      className={cellCls}
+                      className="w-20"
                     />
                   </td>
-                  <td className="px-4 py-2 text-[#111827] font-medium">{formatPKR(l.lineTotal)}</td>
+                  <td className="px-4 py-2.5 text-ink font-medium tabular-nums">{formatPKR(l.lineTotal)}</td>
                   <td className="px-2 py-2">
-                    <button onClick={() => removeLine(l._key)} className="text-[#6B7280] hover:text-rose-600">
+                    <button
+                      onClick={() => removeLine(l._key)}
+                      aria-label={`Remove ${l.productName}`}
+                      className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
@@ -203,7 +209,7 @@ export default function NewPurchasePage() {
               ))}
               {lines.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-[#6B7280]">
+                  <td colSpan={5} className="px-4 py-8 text-center text-ink-muted">
                     Search and add products above.
                   </td>
                 </tr>
@@ -214,89 +220,74 @@ export default function NewPurchasePage() {
       </div>
 
       <div className="space-y-4">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 space-y-4">
-          <h2 className="font-semibold text-[#111827]">3. Supplier & Payment</h2>
+        <div className="bg-surface border border-border rounded-md p-5 space-y-4">
+          <h2 className="font-semibold text-ink">3. Supplier & Payment</h2>
 
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Supplier (optional)</label>
-            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={inputCls}>
+          <Field label="Supplier (optional)">
+            <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
               <option value="">—</option>
               {(suppliers ?? []).map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Payment Method</label>
-            <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as PaymentMode)} className={inputCls}>
+          <Field label="Payment Method">
+            <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}>
               <option value="cash">Cash</option>
               <option value="card">Card</option>
               <option value="credit">Credit</option>
               <option value="partial">Partial</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
 
           {paymentMode === 'partial' && (
-            <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1">Amount Paid Now</label>
-              <input
+            <Field label="Amount Paid Now">
+              <Input
                 type="number"
                 min="0"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
-                className={inputCls}
               />
-            </div>
+            </Field>
           )}
         </div>
 
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 space-y-3">
+        <div className="bg-surface border border-border rounded-md p-5 space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-[#6B7280]">Subtotal</span>
-            <span className="text-[#111827]">{formatPKR(subtotal)}</span>
+            <span className="text-ink-muted">Subtotal</span>
+            <span className="text-ink">{formatPKR(subtotal)}</span>
           </div>
-          <div>
-            <label className="block text-xs text-[#6B7280] mb-1">Freight / Carriage (PKR)</label>
-            <input
+          <Field label="Freight / Carriage (PKR)">
+            <Input
               type="number"
               min="0"
               value={freightAmount}
               onChange={(e) => setFreightAmount(e.target.value)}
-              className={inputCls}
             />
-          </div>
-          <div className="flex justify-between font-semibold text-[#111827] pt-2 border-t border-[#E5E7EB]">
+          </Field>
+          <div className="flex justify-between font-semibold text-ink pt-2 border-t border-border">
             <span>Total</span>
             <span>{formatPKR(total)}</span>
           </div>
 
           {paymentMode === 'credit' && (
-            <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">
+            <div className="text-xs bg-warning-soft text-warning border border-warning/20 rounded-md px-3 py-2">
               {formatPKR(total)} will be added to the supplier's payable.
             </div>
           )}
 
           {error && (
-            <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>
+            <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">{error}</div>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full py-2.5 rounded-lg bg-[#1F6B3B] text-white font-semibold text-sm hover:bg-[#17522D] disabled:opacity-60"
-          >
-            {submitting ? 'Saving…' : 'Record Purchase & Update Stock'}
-          </button>
+          <Button variant="primary" onClick={handleSubmit} loading={submitting} className="w-full">
+            Record Purchase & Update Stock
+          </Button>
         </div>
       </div>
     </div>
   );
 }
-
-const inputCls =
-  'w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';
-const cellCls =
-  'w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';

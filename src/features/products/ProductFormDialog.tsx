@@ -1,10 +1,10 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import { BASE_UNITS } from '../../../shared/constants';
 import { ProductWithNames } from '../../../shared/types';
 import { parseVariantText, stringifyVariant } from './variantAttributes';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Modal, Field, Input, Select, Button } from '../../components/ui';
 
 interface Props {
   open: boolean;
@@ -99,8 +99,6 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
     enabled: open,
   });
 
-  if (!open) return null;
-
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -140,25 +138,30 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-          <h2 className="text-lg font-bold text-[#111827]">{product ? 'Edit Product' : 'Add Product'}</h2>
-          <button onClick={onClose} className="text-[#6B7280] hover:text-[#111827]">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex gap-1 px-6 pt-3 border-b border-[#E5E7EB]">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={product ? 'Edit Product' : 'Add Product'}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="product-form" variant="primary" loading={submitting}>
+            {product ? 'Save Changes' : 'Add Product'}
+          </Button>
+        </>
+      }
+    >
+      <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex gap-1 -mt-1 mb-2 border-b border-border">
           {(['details', 'barcode'] as const).map((key) => (
             <button
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === key
-                  ? 'border-[#1F6B3B] text-[#1F6B3B]'
-                  : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+              className={`px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
+                tab === key ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink'
               }`}
             >
               {key === 'details' ? 'Product Details' : 'Barcode Lookup'}
@@ -166,204 +169,119 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-              {error}
-            </div>
-          )}
-
-          {tab === 'details' && (
-            <>
-              <Field label="Name" required>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => set('name', e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Category">
-                  <select
-                    value={form.categoryId}
-                    onChange={(e) => set('categoryId', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">—</option>
-                    {(categories ?? []).map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Brand">
-                  <select
-                    value={form.brandId}
-                    onChange={(e) => set('brandId', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">—</option>
-                    {(brands ?? []).map((b: any) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
-
-              <Field label="Variant Details" hint='e.g. "thickness:18mm, grade:Commercial"'>
-                <input
-                  value={form.variantText}
-                  onChange={(e) => set('variantText', e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Selling Unit" required>
-                  <select
-                    required
-                    value={form.baseUnit}
-                    onChange={(e) => set('baseUnit', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">—</option>
-                    {BASE_UNITS.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Purchase Unit">
-                  <input
-                    value={form.purchaseUnit}
-                    onChange={(e) => set('purchaseUnit', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Items Per Purchase Unit">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.purchaseUnitFactor}
-                    onChange={(e) => set('purchaseUnitFactor', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Low Stock Alert Level">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.reorderLevel}
-                    onChange={(e) => set('reorderLevel', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <Field label="Retail Price (PKR)">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.retailPrice}
-                    onChange={(e) => set('retailPrice', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Wholesale Price (PKR)">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.wholesalePrice}
-                    onChange={(e) => set('wholesalePrice', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Cost Price (PKR)">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.costPrice}
-                    onChange={(e) => set('costPrice', e.target.value)}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Shelf/Rack Location">
-                <input
-                  value={form.rackLocation}
-                  onChange={(e) => set('rackLocation', e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-            </>
-          )}
-
-          {tab === 'barcode' && (
-            <Field label="Barcode" hint="Manual entry for now — camera scanning lands later.">
-              <input
-                value={form.barcode}
-                onChange={(e) => set('barcode', e.target.value)}
-                className={inputCls}
-                autoFocus
-              />
-            </Field>
-          )}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-[#6B7280] hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-            >
-              {submitting ? 'Saving…' : product ? 'Save Changes' : 'Add Product'}
-            </button>
+        {error && (
+          <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
+            {error}
           </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+        )}
 
-const inputCls =
-  'w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';
+        {tab === 'details' && (
+          <>
+            <Field label="Name" required>
+              <Input required value={form.name} onChange={(e) => set('name', e.target.value)} />
+            </Field>
 
-function Field({
-  label,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-[#111827] mb-1">
-        {label}
-        {required && <span className="text-rose-600"> *</span>}
-      </label>
-      {children}
-      {hint && <p className="text-xs text-[#6B7280] mt-1">{hint}</p>}
-    </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Category">
+                <Select value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
+                  <option value="">—</option>
+                  {(categories ?? []).map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Brand">
+                <Select value={form.brandId} onChange={(e) => set('brandId', e.target.value)}>
+                  <option value="">—</option>
+                  {(brands ?? []).map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+
+            <Field label="Variant Details" hint='e.g. "thickness:18mm, grade:Commercial"'>
+              <Input value={form.variantText} onChange={(e) => set('variantText', e.target.value)} />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Selling Unit" required>
+                <Select required value={form.baseUnit} onChange={(e) => set('baseUnit', e.target.value)}>
+                  <option value="">—</option>
+                  {BASE_UNITS.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Purchase Unit">
+                <Input value={form.purchaseUnit} onChange={(e) => set('purchaseUnit', e.target.value)} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Items Per Purchase Unit">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.purchaseUnitFactor}
+                  onChange={(e) => set('purchaseUnitFactor', e.target.value)}
+                />
+              </Field>
+              <Field label="Low Stock Alert Level">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.reorderLevel}
+                  onChange={(e) => set('reorderLevel', e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="Retail Price (PKR)">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.retailPrice}
+                  onChange={(e) => set('retailPrice', e.target.value)}
+                />
+              </Field>
+              <Field label="Wholesale Price (PKR)">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.wholesalePrice}
+                  onChange={(e) => set('wholesalePrice', e.target.value)}
+                />
+              </Field>
+              <Field label="Cost Price (PKR)">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.costPrice}
+                  onChange={(e) => set('costPrice', e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Shelf/Rack Location">
+              <Input value={form.rackLocation} onChange={(e) => set('rackLocation', e.target.value)} />
+            </Field>
+          </>
+        )}
+
+        {tab === 'barcode' && (
+          <Field label="Barcode" hint="Manual entry for now — camera scanning lands later.">
+            <Input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} autoFocus />
+          </Field>
+        )}
+      </form>
+    </Modal>
   );
 }

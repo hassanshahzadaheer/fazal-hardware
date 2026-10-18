@@ -6,26 +6,14 @@
 
 @layer base {
   body {
-    @apply font-sans bg-[#F7F8FA] text-[#111827];
+    @apply font-sans bg-canvas text-ink antialiased;
   }
 }
 
-/* §24.3 toast slide-in */
-@keyframes toast-in {
-  from {
-    transform: translateX(16px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-.animate-toast-in {
-  animation: toast-in 0.2s ease-out;
-}
+/* Toast + overlay motion is defined via Tailwind's `animate-*` utilities
+   (tailwind.config.js) — keep only truly custom, non-utility CSS here. */
 
-/* Custom Scrollbar */
+/* Custom scrollbar — thin, unobtrusive, matches the neutral palette. */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -36,20 +24,15 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E5E7EB;
+  background: theme('colors.border.strong');
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D1D5DB;
+  background: theme('colors.ink.faint');
 }
 
-/* Dense form inputs style */
-input, select, textarea {
-  @apply focus:outline-none focus:ring-1 focus:ring-[#1F6B3B] focus:border-[#1F6B3B];
-}
-
-/* Tabular numbers for financial tables */
+/* Tabular numbers for financial tables. */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }

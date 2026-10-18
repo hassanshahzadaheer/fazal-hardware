@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import { SaleInvoice } from '../../../shared/types';
+import { Modal, Field, Input, Textarea, Button } from '../../components/ui';
 
 export default function SaleReturnDialog({
   invoice,
@@ -40,77 +40,64 @@ export default function SaleReturnDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-          <h2 className="text-lg font-bold text-[#111827]">Return — {invoice.invoiceNumber}</h2>
-          <button onClick={onClose} className="text-[#6B7280] hover:text-[#111827]">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 space-y-4">
-          {error && (
-            <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-              {error}
-            </div>
-          )}
+    <Modal
+      open
+      onClose={onClose}
+      title={`Return — ${invoice.invoiceNumber}`}
+      size="lg"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" loading={submitting} onClick={handleSubmit}>
+            Process Return
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && (
+          <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
+            {error}
+          </div>
+        )}
+        <div className="border border-border rounded-md overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280] text-xs">
+            <thead className="bg-surface-sunken text-left text-ink-muted text-[12px] uppercase tracking-wide border-b border-border">
               <tr>
                 <th className="px-3 py-2 font-medium">Product</th>
                 <th className="px-3 py-2 font-medium">Sold Qty</th>
                 <th className="px-3 py-2 font-medium w-28">Return Qty</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
+            <tbody className="divide-y divide-border">
               {invoice.items.map((item) => (
                 <tr key={item.productId}>
-                  <td className="px-3 py-2 text-[#111827]">{item.productName}</td>
-                  <td className="px-3 py-2 text-[#6B7280]">
+                  <td className="px-3 py-2 text-ink">{item.productName}</td>
+                  <td className="px-3 py-2 text-ink-muted">
                     {item.quantity} {item.unit}
                   </td>
                   <td className="px-3 py-2">
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       max={item.quantity}
                       value={quantities[item.productId] ?? ''}
                       onChange={(e) => setQty(item.productId, e.target.value)}
-                      className="w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
+                      className="w-20"
                     />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-[#6B7280] hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 disabled:opacity-60"
-            >
-              {submitting ? 'Processing…' : 'Process Return'}
-            </button>
-          </div>
         </div>
+
+        <Field label="Notes">
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        </Field>
       </div>
-    </div>
+    </Modal>
   );
 }

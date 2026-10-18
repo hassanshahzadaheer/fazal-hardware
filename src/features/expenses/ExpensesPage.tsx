@@ -1,9 +1,11 @@
 import { useMemo, useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingDown } from 'lucide-react';
 import { Expense } from '../../../shared/types';
 import { EXPENSE_HEADS, EXPENSE_PAYMENT_MODES } from '../../../shared/constants';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, Select } from '../../components/ui';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -78,106 +80,119 @@ export default function ExpensesPage() {
     setDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ['expenses'] });
   };
-  const handleDelete = (expense: Expense) => {
-    if (confirm(`Delete this ${expense.expenseHead} expense?`)) {
-      deleteMutation.mutate(expense.id);
-    }
+  const handleDelete = async (expense: Expense) => {
+    const confirmed = await confirmDialog({
+      title: 'Delete expense?',
+      description: `This ${expense.expenseHead} expense will be permanently removed. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (confirmed) deleteMutation.mutate(expense.id);
   };
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-[#111827]">Daily Expenses</h1>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D]"
-        >
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-[22px] font-semibold text-ink tracking-tight">Daily Expenses</h1>
+          <p className="text-[13px] text-ink-muted mt-0.5">Track cash outflows by head, mode, and reference.</p>
+        </div>
+        <Button variant="primary" onClick={openCreate}>
           <Plus className="w-4 h-4" />
           Add Expense
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-4">
-          <div className="text-xs text-[#6B7280]">Month Total</div>
-          <div className="text-lg font-bold text-[#111827]">{formatPKR(monthTotal)}</div>
+        <div className="bg-surface border border-border rounded-md p-4">
+          <div className="text-xs text-ink-muted">Month Total</div>
+          <div className="text-lg font-semibold text-ink">{formatPKR(monthTotal)}</div>
         </div>
         {topHeads.map((t) => (
-          <div key={t.head} className="bg-white border border-[#E5E7EB] rounded-lg p-4">
-            <div className="text-xs text-[#6B7280]">{t.head}</div>
-            <div className="text-lg font-bold text-[#111827]">{formatPKR(t.amount)}</div>
-            <div className="text-xs text-[#6B7280]">{t.pct}% of total</div>
+          <div key={t.head} className="bg-surface border border-border rounded-md p-4">
+            <div className="text-xs text-ink-muted">{t.head}</div>
+            <div className="text-lg font-semibold text-ink">{formatPKR(t.amount)}</div>
+            <div className="text-xs text-ink-muted">{t.pct}% of total</div>
           </div>
         ))}
       </div>
 
       <div className="flex items-center gap-3 mb-4">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by head, description, or reference…"
-          className="flex-1 max-w-sm px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
-        />
-        <input
+        <div className="relative flex-1 max-w-sm">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by head, description, or reference…"
+          />
+        </div>
+        <Input
           type="month"
           value={filterMonth}
           onChange={(e) => setFilterMonth(e.target.value)}
-          className="px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
+          className="w-auto"
         />
       </div>
 
-      {isLoading && <p className="text-sm text-[#6B7280]">Loading…</p>}
-
-      {!isLoading && (
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280]">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Date</th>
-                <th className="px-4 py-2.5 font-medium">Head</th>
-                <th className="px-4 py-2.5 font-medium">Description</th>
-                <th className="px-4 py-2.5 font-medium">Mode</th>
-                <th className="px-4 py-2.5 font-medium">Ref</th>
-                <th className="px-4 py-2.5 font-medium">Amount</th>
-                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {filtered.map((e) => (
-                <tr key={e.id}>
-                  <td className="px-4 py-2.5 text-[#6B7280]">{e.date}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="px-2 py-0.5 rounded-full bg-[#E8F1EA] text-[#1F6B3B] text-xs font-medium">
-                      {e.expenseHead}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-[#6B7280]">{e.description ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-[#6B7280] capitalize">{e.paymentMode.replace('_', ' ')}</td>
-                  <td className="px-4 py-2.5 text-[#6B7280]">{e.reference ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-rose-700 font-medium">{formatPKR(e.amount)}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => openEdit(e)} className="text-[#6B7280] hover:text-[#111827]" title="Edit">
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(e)} className="text-[#6B7280] hover:text-rose-600" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+      <div className="bg-surface border border-border rounded-md overflow-hidden">
+        {isLoading ? (
+          <TableSkeleton cols={7} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={TrendingDown}
+            title="No expenses for this filter"
+            description="Try a different month or search term, or add a new expense."
+            action={<Button variant="primary" onClick={openCreate}><Plus className="w-4 h-4" />Add Expense</Button>}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-[#6B7280]">
-                    No expenses for this filter.
-                  </td>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Head</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Description</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Mode</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Ref</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Amount</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((e) => (
+                  <tr key={e.id} className="hover:bg-surface-sunken/60 transition-colors">
+                    <td className="px-4 py-2.5 text-ink-muted">{e.date}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge tone="accent">{e.expenseHead}</Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-ink-muted">{e.description ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-ink-muted capitalize">{e.paymentMode.replace('_', ' ')}</td>
+                    <td className="px-4 py-2.5 text-ink-muted">{e.reference ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-danger font-medium tabular-nums">{formatPKR(e.amount)}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(e)}
+                          aria-label={`Edit expense on ${e.date}`}
+                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(e)}
+                          aria-label={`Delete expense on ${e.date}`}
+                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {dialogOpen && (
         <ExpenseFormDialog expense={editing} onClose={() => setDialogOpen(false)} onSaved={handleSaved} />
@@ -234,84 +249,63 @@ function ExpenseFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-          <h2 className="text-lg font-bold text-[#111827]">{expense ? 'Edit Expense' : 'Add Expense'}</h2>
-          <button onClick={onClose} className="text-[#6B7280] hover:text-[#111827]">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Date</label>
-            <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">
-              Amount (PKR) <span className="text-rose-600">*</span>
-            </label>
-            <input
-              type="number"
-              min="0"
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Expense Head</label>
-            <select value={expenseHead} onChange={(e) => setExpenseHead(e.target.value)} className={inputCls}>
-              {EXPENSE_HEADS.map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Description</label>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Payment Mode</label>
-            <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as typeof paymentMode)} className={inputCls}>
-              {EXPENSE_PAYMENT_MODES.map((m) => (
-                <option key={m} value={m}>
-                  {m.replace('_', ' ')}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Reference</label>
-            <input value={reference} onChange={(e) => setReference(e.target.value)} className={inputCls} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-[#6B7280] hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-            >
-              {submitting ? 'Saving…' : expense ? 'Save Changes' : 'Add Expense'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal
+      open
+      onClose={onClose}
+      title={expense ? 'Edit Expense' : 'Add Expense'}
+      size="sm"
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="expense-form" variant="primary" loading={submitting}>
+            {expense ? 'Save Changes' : 'Add Expense'}
+          </Button>
+        </>
+      }
+    >
+      <form id="expense-form" onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">{error}</div>
+        )}
+        <Field label="Date" required>
+          <Input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Amount (PKR)" required>
+          <Input
+            type="number"
+            min="0"
+            required
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </Field>
+        <Field label="Expense Head">
+          <Select value={expenseHead} onChange={(e) => setExpenseHead(e.target.value)}>
+            {EXPENSE_HEADS.map((h) => (
+              <option key={h} value={h}>
+                {h}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Description">
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+        <Field label="Payment Mode">
+          <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as typeof paymentMode)}>
+            {EXPENSE_PAYMENT_MODES.map((m) => (
+              <option key={m} value={m}>
+                {m.replace('_', ' ')}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Reference">
+          <Input value={reference} onChange={(e) => setReference(e.target.value)} />
+        </Field>
+      </form>
+    </Modal>
   );
 }
-
-const inputCls =
-  'w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';

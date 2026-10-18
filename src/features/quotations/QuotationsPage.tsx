@@ -1,19 +1,21 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, FileText } from 'lucide-react';
 import { Quotation } from '../../../shared/types';
 import ViewQuotationDialog from './ViewQuotationDialog';
+import { Input, Badge, EmptyState } from '../../components/ui';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  draft: 'bg-slate-100 text-slate-600 border-slate-200',
-  sent: 'bg-blue-100 text-blue-700 border-blue-200',
-  converted: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  cancelled: 'bg-rose-100 text-rose-700 border-rose-200',
+const STATUS_TONE: Record<string, 'neutral' | 'accent' | 'success' | 'danger'> = {
+  draft: 'neutral',
+  sent: 'accent',
+  converted: 'success',
+  cancelled: 'danger',
 };
 
 export default function QuotationsPage() {
@@ -41,80 +43,86 @@ export default function QuotationsPage() {
   const totalValue = useMemo(() => filtered.reduce((sum, qt) => sum + qt.total, 0), [filtered]);
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[#111827]">Quotations</h1>
-          <span className="px-2 py-0.5 rounded-full bg-[#E8F1EA] text-[#1F6B3B] text-xs font-semibold">
-            {quotations?.length ?? 0}
-          </span>
+    <div className="p-8 max-w-[1400px]">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Quotations</h1>
+            <Badge tone="accent">{quotations?.length ?? 0}</Badge>
+          </div>
+          <p className="text-[13px] text-ink-muted mt-0.5">
+            {filtered.length} quote{filtered.length === 1 ? '' : 's'} — total value {formatPKR(totalValue)}
+          </p>
         </div>
         <Link
           to="/quotations/new"
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D]"
+          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 ease-standard bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-xs px-4 py-2 text-sm"
         >
           <Plus className="w-4 h-4" />
           New Quotation
         </Link>
       </div>
-      <p className="text-sm text-[#6B7280] mb-4">
-        {filtered.length} quote{filtered.length === 1 ? '' : 's'} — total value {formatPKR(totalValue)}
-      </p>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by quote #, customer, or remarks…"
-        className="w-full max-w-md mb-4 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
-      />
+      <div className="relative w-full max-w-sm mb-4">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by quote #, customer, or remarks…"
+        />
+      </div>
 
-      {isLoading && <p className="text-sm text-[#6B7280]">Loading…</p>}
-
-      {!isLoading && (
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280]">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Quote #</th>
-                <th className="px-4 py-2.5 font-medium">Customer</th>
-                <th className="px-4 py-2.5 font-medium">Date</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Total</th>
-                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {filtered.map((qt) => (
-                <tr key={qt.id}>
-                  <td className="px-4 py-2.5 text-[#111827] font-medium">{qt.quotationNumber}</td>
-                  <td className="px-4 py-2.5 text-[#6B7280]">{qt.customerName ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-[#6B7280]">{new Date(qt.createdDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_BADGE[qt.status]}`}>
-                      {qt.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-[#111827]">{formatPKR(qt.total)}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center justify-end">
-                      <button onClick={() => setViewing(qt)} className="text-[#6B7280] hover:text-[#111827]" title="View">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+      <div className="bg-surface border border-border rounded-md overflow-hidden">
+        {isLoading ? (
+          <TableSkeleton cols={6} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title={search ? 'No quotations match your search' : 'No quotations yet'}
+            description={search ? 'Try a different quote number, customer, or remark.' : 'Quotations you create will show up here.'}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[#6B7280]">
-                    {search ? 'No quotations match your search.' : 'No quotations yet.'}
-                  </td>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Quote #</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Customer</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Total</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((qt) => (
+                  <tr key={qt.id} className="hover:bg-surface-sunken/60 transition-colors">
+                    <td className="px-4 py-2.5 font-medium text-ink">{qt.quotationNumber}</td>
+                    <td className="px-4 py-2.5 text-ink-muted">{qt.customerName ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-ink-muted">{new Date(qt.createdDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge tone={STATUS_TONE[qt.status]}>
+                        <span className="capitalize">{qt.status}</span>
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-ink tabular-nums">{formatPKR(qt.total)}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end">
+                        <button
+                          onClick={() => setViewing(qt)}
+                          aria-label={`View ${qt.quotationNumber}`}
+                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {viewing && <ViewQuotationDialog quotation={viewing} onClose={() => setViewing(null)} />}
     </div>

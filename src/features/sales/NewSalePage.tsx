@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Search } from 'lucide-react';
 import { ProductWithNames, Customer, LineItem, Quotation } from '../../../shared/types';
 import { calcLineTotal } from './lineTotal';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Field, Input, Select, Button } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -147,34 +148,37 @@ export default function NewSalePage() {
   return (
     <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
       {fromQuotation && (
-        <div className="lg:col-span-3 text-sm bg-blue-50 text-blue-800 border border-blue-200 rounded-lg px-4 py-2.5">
+        <div className="lg:col-span-3 text-sm bg-accent-soft text-accent border border-accent-soft-border rounded-md px-4 py-2.5">
           Converting quotation <strong>{fromQuotation.quotationNumber}</strong> — completing this sale will mark
           it as converted.
         </div>
       )}
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
+        <div className="bg-surface border border-border rounded-md p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-[#111827]">1. Add Products</h2>
+            <h2 className="font-semibold text-ink">1. Add Products</h2>
             <button
               onClick={() => setDimensional((v) => !v)}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg border ${
-                dimensional ? 'bg-[#1F6B3B] text-white border-[#1F6B3B]' : 'text-[#6B7280] border-[#E5E7EB]'
+              className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-colors ${
+                dimensional
+                  ? 'bg-accent text-white border-accent'
+                  : 'text-ink-muted border-border hover:bg-surface-sunken'
               }`}
             >
               Dimensional (L×W)
             </button>
           </div>
           <div className="relative">
-            <input
+            <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, barcode, or rack location…"
               autoFocus
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
+              className="pl-9"
             />
             {searchResults.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full bg-white border border-[#E5E7EB] rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              <ul className="absolute z-10 mt-1 w-full bg-surface border border-border rounded-md shadow-md max-h-64 overflow-y-auto">
                 {searchResults.map((p) => {
                   const price = priceTier === 'wholesale' ? p.wholesalePrice ?? p.retailPrice : p.retailPrice;
                   const low = p.reorderLevel !== null && p.stockOnHand <= p.reorderLevel;
@@ -182,15 +186,15 @@ export default function NewSalePage() {
                     <li
                       key={p.id}
                       onClick={() => addProduct(p)}
-                      className="px-3 py-2 flex items-center justify-between text-sm hover:bg-[#F7F8FA] cursor-pointer"
+                      className="px-3 py-2 flex items-center justify-between text-sm hover:bg-surface-sunken cursor-pointer"
                     >
                       <div>
-                        <div className="text-[#111827]">{p.name}</div>
-                        <div className={`text-xs ${low ? 'text-rose-600' : 'text-[#6B7280]'}`}>
+                        <div className="text-ink">{p.name}</div>
+                        <div className={`text-xs ${low ? 'text-danger' : 'text-ink-muted'}`}>
                           {p.stockOnHand} {p.baseUnit} in stock
                         </div>
                       </div>
-                      <span className="text-[#111827] font-medium">{formatPKR(price ?? 0)}</span>
+                      <span className="text-ink font-medium">{formatPKR(price ?? 0)}</span>
                     </li>
                   );
                 })}
@@ -199,82 +203,86 @@ export default function NewSalePage() {
           </div>
         </div>
 
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-          <h2 className="font-semibold text-[#111827] px-5 pt-4 pb-2">2. Review Items</h2>
+        <div className="bg-surface border border-border rounded-md overflow-hidden">
+          <h2 className="font-semibold text-ink px-5 pt-4 pb-2">2. Review Items</h2>
           <table className="w-full text-sm">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280]">
+            <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
               <tr>
-                <th className="px-4 py-2 font-medium">Product</th>
-                <th className="px-4 py-2 font-medium w-20">Qty</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide">Product</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Qty</th>
                 {dimensional && (
                   <>
-                    <th className="px-4 py-2 font-medium w-20">L</th>
-                    <th className="px-4 py-2 font-medium w-20">W</th>
+                    <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">L</th>
+                    <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">W</th>
                   </>
                 )}
-                <th className="px-4 py-2 font-medium w-28">Price</th>
-                <th className="px-4 py-2 font-medium w-20">Disc%</th>
-                <th className="px-4 py-2 font-medium w-28">Total</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Price</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Disc%</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Total</th>
                 <th className="px-4 py-2 w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
+            <tbody className="divide-y divide-border">
               {lines.map((l) => (
-                <tr key={l._key}>
-                  <td className="px-4 py-2 text-[#111827]">{l.productName}</td>
+                <tr key={l._key} className="hover:bg-surface-sunken/60 transition-colors">
+                  <td className="px-4 py-2 text-ink">{l.productName}</td>
                   <td className="px-2 py-2">
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       value={l.quantity}
                       onChange={(e) => updateLine(l._key, { quantity: Number(e.target.value) })}
-                      className={cellCls}
+                      className="w-20"
                     />
                   </td>
                   {dimensional && (
                     <>
                       <td className="px-2 py-2">
-                        <input
+                        <Input
                           type="number"
                           min="0"
                           value={l.length ?? ''}
                           onChange={(e) => updateLine(l._key, { length: e.target.value ? Number(e.target.value) : null })}
-                          className={cellCls}
+                          className="w-20"
                         />
                       </td>
                       <td className="px-2 py-2">
-                        <input
+                        <Input
                           type="number"
                           min="0"
                           value={l.width ?? ''}
                           onChange={(e) => updateLine(l._key, { width: e.target.value ? Number(e.target.value) : null })}
-                          className={cellCls}
+                          className="w-20"
                         />
                       </td>
                     </>
                   )}
                   <td className="px-2 py-2">
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       value={l.unitPrice}
                       onChange={(e) => updateLine(l._key, { unitPrice: Number(e.target.value) })}
-                      className={cellCls}
+                      className="w-28"
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       max="100"
                       value={l.discountPercent ?? 0}
                       onChange={(e) => updateLine(l._key, { discountPercent: Number(e.target.value) })}
-                      className={cellCls}
+                      className="w-20"
                     />
                   </td>
-                  <td className="px-4 py-2 text-[#111827] font-medium">{formatPKR(l.lineTotal)}</td>
+                  <td className="px-4 py-2 text-ink font-medium">{formatPKR(l.lineTotal)}</td>
                   <td className="px-2 py-2">
-                    <button onClick={() => removeLine(l._key)} className="text-[#6B7280] hover:text-rose-600">
+                    <button
+                      onClick={() => removeLine(l._key)}
+                      aria-label={`Remove ${l.productName}`}
+                      className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
@@ -282,7 +290,7 @@ export default function NewSalePage() {
               ))}
               {lines.length === 0 && (
                 <tr>
-                  <td colSpan={dimensional ? 8 : 6} className="px-4 py-8 text-center text-[#6B7280]">
+                  <td colSpan={dimensional ? 8 : 6} className="px-4 py-8 text-center text-ink-muted">
                     Search and add products above.
                   </td>
                 </tr>
@@ -293,122 +301,102 @@ export default function NewSalePage() {
       </div>
 
       <div className="space-y-4">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 space-y-4">
-          <h2 className="font-semibold text-[#111827]">3. Customer & Payment</h2>
+        <div className="bg-surface border border-border rounded-md p-5 space-y-4">
+          <h2 className="font-semibold text-ink">3. Customer & Payment</h2>
 
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Customer (optional)</label>
-            <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={inputCls}>
+          <Field label="Customer (optional)">
+            <Select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
               <option value="">Walk-in</option>
               {(customers ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Price Type</label>
-            <select
-              value={priceTier}
-              onChange={(e) => setPriceTier(e.target.value as PriceTier)}
-              className={inputCls}
-            >
+          <Field label="Price Type">
+            <Select value={priceTier} onChange={(e) => setPriceTier(e.target.value as PriceTier)}>
               <option value="retail">Retail</option>
               <option value="wholesale">Wholesale</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-[#111827] mb-1">Payment Method</label>
-            <select
-              value={paymentMode}
-              onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-              className={inputCls}
-            >
+          <Field label="Payment Method">
+            <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}>
               <option value="cash">Cash — Paid now in cash</option>
               <option value="card">Card — Paid by debit/credit card</option>
               <option value="credit">Credit — Customer will pay later</option>
               <option value="partial">Partial — Paid some, rest on credit</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
 
           {paymentMode === 'partial' && (
-            <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1">How much did they pay now?</label>
-              <input
+            <Field label="How much did they pay now?">
+              <Input
                 type="number"
                 min="0"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
-                className={inputCls}
               />
-            </div>
+            </Field>
           )}
         </div>
 
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 space-y-3">
+        <div className="bg-surface-sunken border border-border rounded-md p-4 space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-[#6B7280]">Subtotal</span>
-            <span className="text-[#111827]">{formatPKR(subtotal)}</span>
+            <span className="text-ink-muted">Subtotal</span>
+            <span className="text-ink font-semibold">{formatPKR(subtotal)}</span>
           </div>
-          <div>
-            <label className="block text-xs text-[#6B7280] mb-1">Extra Discount (PKR)</label>
-            <input
+          <Field label="Extra Discount (PKR)">
+            <Input
               type="number"
               min="0"
               value={discountAmount}
               onChange={(e) => setDiscountAmount(e.target.value)}
-              className={inputCls}
             />
-          </div>
-          <div>
-            <label className="block text-xs text-[#6B7280] mb-1">Freight / Carriage (PKR)</label>
-            <input
+          </Field>
+          <Field label="Freight / Carriage (PKR)">
+            <Input
               type="number"
               min="0"
               value={freightAmount}
               onChange={(e) => setFreightAmount(e.target.value)}
-              className={inputCls}
             />
-          </div>
-          <div className="flex justify-between font-semibold text-[#111827] pt-2 border-t border-[#E5E7EB]">
+          </Field>
+          <div className="flex justify-between text-lg font-semibold text-ink pt-2 border-t border-border">
             <span>Total</span>
             <span>{formatPKR(total)}</span>
           </div>
 
           {paymentMode === 'credit' && (
-            <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">
+            <div className="text-xs bg-warning-soft text-warning border border-warning/20 rounded-md px-3 py-2">
               {formatPKR(total)} will be added to the customer's udhaar.
             </div>
           )}
           {paymentMode === 'partial' && Number(paidAmount) > 0 && (
-            <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">
+            <div className="text-xs bg-warning-soft text-warning border border-warning/20 rounded-md px-3 py-2">
               {formatPKR(Math.max(0, total - Number(paidAmount)))} remains on udhaar.
             </div>
           )}
 
           {error && (
-            <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
               {error}
             </div>
           )}
 
-          <button
+          <Button
+            type="button"
+            variant="primary"
+            loading={submitting}
             onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full py-2.5 rounded-lg bg-[#1F6B3B] text-white font-semibold text-sm hover:bg-[#17522D] disabled:opacity-60"
+            className="w-full"
           >
-            {submitting ? 'Saving…' : 'Complete Sale'}
-          </button>
+            Complete Sale
+          </Button>
         </div>
       </div>
     </div>
   );
 }
-
-const inputCls =
-  'w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';
-const cellCls =
-  'w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';

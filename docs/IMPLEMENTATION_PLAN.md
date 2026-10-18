@@ -279,6 +279,40 @@ Rebuild Fazal Hardware as an offline-first Electron desktop app: React 18 + Vite
 ### Checkpoint — Ship-Ready
 - [ ] **Not done.** No packaged installer has been built or run (Task 13.2's deferred step), so "installs and runs on at least one target OS" is unverified. Backup/restore round-trip is verified via an automated test, not a manual one. Printed documents have not been visually inspected.
 
+## Phase 14: AI Voice Order Entry
+
+**Goal** (per your request): a customer or staff member speaks an order naturally into the mic — plain English, no fixed format ("I need five bags of cement, two one-inch PVC pipes, and a box of screws for Ahmed") — and the app turns that into a reviewable, editable set of line items that becomes a Sale Invoice or Purchase Order with one button press. Modeled directly on the AI Invoice Scanner (Phase 10): same three-step shape (capture → AI processing → review & confirm), same fuzzy product-matching, same "AI never auto-submits — a human always confirms" rule.
+
+- [ ] **Task 14.1** — Microphone capture plumbing.
+  - Renderer: `MediaRecorder` (standard Web API, already available in Electron's Chromium renderer — no new dependency) records to a `Blob`, converted to base64 and sent to the main process over IPC exactly like the AI Scanner sends image bytes.
+  - Main process: `session.defaultSession.setPermissionRequestHandler` in `electron/main.ts` must explicitly allow the `'media'` permission, or Chromium silently blocks `getUserMedia()` in a packaged app (unlike loading `localhost:5173` in dev, where the OS mic-permission prompt alone may be enough — needs confirming either way).
+  - Packaging: `package.json`'s `build.mac` needs `extendInfo: { NSMicrophoneUsageDescription: "..." }` — macOS refuses mic access to a packaged app without it (this is the same category of gap as Task 13.2's unbuilt installer: untestable without an actual packaged run).
+  - Acceptance: a packaged (or at minimum a real `npm run dev`) run can record audio and the main process receives valid audio bytes over IPC.
+  - Verify: manual — this is fundamentally a hardware-permission path vitest can't cover. A unit test can only assert the IPC payload shape.
+  - Files: `src/features/voice-order/useVoiceRecorder.ts` (new recording hook), `electron/main.ts`, `electron/preload.ts`, `src/global.d.ts`, `package.json`.
+
+- [ ] **Task 14.2** — Gemini audio understanding handler.
+  - New `electron/handlers/voiceOrder.ts`, structurally a sibling of `aiScanner.ts`: same `GEMINI_API_KEY` / OFFLINE guard, same `.env` wiring already in place (Phase 10 + the `.env` fix from this session), but sends `inline_data: { mime_type: 'audio/webm', data: base64Audio }` instead of an image, with a prompt asking Gemini to both transcribe and extract structured order data in one call: `{"customer_name": string|null, "items": [{"description": string, "quantity": number, "unit": string|null}], "notes": string|null}` (no `rate`/`amount` — unlike a photographed invoice, a spoken order essentially never states a price, so pricing always comes from the catalog, never from the transcript).
+  - **Known unknown, flagged now rather than discovered mid-build**: Gemini's officially documented audio formats are wav/mp3/aiff/aac/ogg/flac — `audio/webm` (Chrome's `MediaRecorder` default) isn't on that list. This needs a live check against the real API before relying on it; if webm isn't accepted, the fallback is recording as `audio/ogg;codecs=opus` (also Chromium-supported) instead, or transcoding in the main process. Same spirit as Task 10.1's "verify against the live service before trusting it" caveat — don't assume this works until it's actually been tried with a real recording.
+  - Acceptance: given a short recording of a spoken order, returns structured items; missing key → OFFLINE without a network call; non-ok response → API_ERROR; empty/unparseable response → PARSE_ERROR; network failure → NETWORK_ERROR (identical error taxonomy to `aiScanner.ts`, reusing the same `Result<T>` shape).
+  - Verify: vitest with `fetch` mocked via `vi.stubGlobal`, mirroring `electron/handlers/__tests__/aiScanner.test.ts`'s 5 cases. Live-call verification is a separate manual step once a real recording exists.
+  - Files: `electron/handlers/voiceOrder.ts`, `electron/handlers/__tests__/voiceOrder.test.ts`, `shared/types/index.ts` (`ExtractedVoiceOrder`, `ExtractedVoiceOrderLineItem`).
+
+- [ ] **Task 14.3** — Voice Order page: record → review → confirm.
+  - Step 1 (Record): big mic button, recording timer, a hard cap (proposed: 2 minutes) enforced client-side so a request body doesn't balloon — stop/re-record before sending.
+  - Step 2 (Processing): sends audio to `voiceOrder:process`, shows the raw transcript-derived item list while it loads (same pattern as `AIScannerPage.tsx`'s processing step).
+  - Step 3 (Review): a document-type toggle — **Sale Invoice** (default — the described use case is a customer dictating what they want) or **Purchase Order** — plus a customer/supplier field (typeahead against existing parties; voice-extracted `customer_name` pre-fills it but never auto-creates a new party record without confirmation), then an editable table of matched line items: each row runs through the existing `findBestMatch()` fuzzy matcher (`shared/lib/productMatch.ts`, reused as-is from Phase 10 — no new matching logic needed) with a dropdown to correct a wrong match, editable quantity, and price pulled from the matched product's retail/wholesale price (editable, since voice never supplies a price). Matched/unmatched counts shown exactly like the AI Scanner's review step. Submitting builds a `saleInvoiceCreateSchema` or `purchaseOrderCreateSchema` payload (reusing those existing schemas unchanged) and calls the existing `sales:create` / `purchases:create` IPC — no new backend write path needed, this phase is purely capture + extraction + an input form in front of handlers that already exist and are already tested.
+  - Acceptance: a reviewed, edited set of items becomes a real Sale or Purchase through the existing, already-tested handlers; nothing submits without the explicit confirm click.
+  - Verify: component-level tests around the matching/payload-building logic (pure functions, same spirit as Phase 10's `productMatch.test.ts`); the full record→submit flow is manual, same caveat as every other GUI flow in this plan.
+  - Files: `src/features/voice-order/VoiceOrderPage.tsx`.
+
+- [ ] **Task 14.4** — Wire into navigation.
+  - Add a "Voice Order" entry to the Sidebar's Transactions group (`src/components/layout/Sidebar.tsx`), route in `src/App.tsx`.
+  - Files: `src/components/layout/Sidebar.tsx`, `src/App.tsx`.
+
+### Checkpoint — Voice Order
+- [ ] Not started. Two hard dependencies before this can be called done: (1) a live Gemini audio call actually succeeding with a real recording (resolves the webm-format unknown in Task 14.2), (2) a packaged macOS build actually granting mic access (resolves the `NSMicrophoneUsageDescription` unknown in Task 14.1) — both need your hardware/mic and a real test, same category of gap as the AI Scanner's live-key caveat and Phase 13's unbuilt installer.
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
@@ -288,6 +322,7 @@ Rebuild Fazal Hardware as an offline-first Electron desktop app: React 18 + Vite
 | AI Scanner requires a live Gemini API key/quota to test meaningfully | Med | Build the offline-degradation path first (Task 10.1) so the rest of the app doesn't depend on having a working key during development. |
 | Reports gross-profit historically used the wrong cost field (legacy gap) | Med | Task 9.1 explicitly tests against `cost_price_at_time`, not current `cost_price`. |
 | Large surface (14 modules) risks losing track of what's actually done vs. planned | Med | One checkpoint per phase, each gated on you reviewing before the next phase starts — don't skip these. |
+| Voice Order (Phase 14) depends on two unverified externals at once: Gemini accepting browser-recorded audio format, and a packaged app actually getting OS mic permission | Med | Task 14.2 flags the webm-format risk explicitly before building on top of it; Task 14.1 calls out the macOS entitlement requirement before packaging, not after discovering it broken. |
 
 ## Resolved Decisions (formerly Open Questions)
 

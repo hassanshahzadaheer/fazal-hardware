@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertTriangle, Search, PackageSearch } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
 import ProductFormDialog from './ProductFormDialog';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Button, Input, Badge, EmptyState, confirmDialog } from '../../components/ui';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number | null): string {
   if (amount === null) return '—';
@@ -69,112 +71,121 @@ export default function ProductsPage() {
     queryClient.invalidateQueries({ queryKey: ['products'] });
   };
 
-  const handleDelete = (product: ProductWithNames) => {
-    if (confirm(`Delete "${product.name}"? This cannot be undone.`)) {
-      deleteMutation.mutate(product.id);
-    }
+  const handleDelete = async (product: ProductWithNames) => {
+    const confirmed = await confirmDialog({
+      title: 'Delete product?',
+      description: `"${product.name}" will be permanently removed. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (confirmed) deleteMutation.mutate(product.id);
   };
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-[1400px]">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[#111827]">Products</h1>
-          <span className="px-2 py-0.5 rounded-full bg-[#E8F1EA] text-[#1F6B3B] text-xs font-semibold">
-            {products?.length ?? 0}
-          </span>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Products</h1>
+            <Badge tone="accent">{products?.length ?? 0}</Badge>
+          </div>
+          <p className="text-[13px] text-ink-muted mt-0.5">Catalog, pricing, and stock levels for every item you sell.</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D]"
-        >
+        <Button variant="primary" onClick={openCreate}>
           <Plus className="w-4 h-4" />
           Add Product
-        </button>
+        </Button>
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by name, category, brand, barcode, or location…"
-        className="w-full max-w-md mb-4 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
-      />
+      <div className="relative w-full max-w-sm mb-4">
+        <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, category, brand, barcode, or location…"
+          className="pl-9"
+        />
+      </div>
 
-      {isLoading && <p className="text-sm text-[#6B7280]">Loading…</p>}
-
-      {!isLoading && (
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280]">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">Product</th>
-                <th className="px-4 py-2.5 font-medium">Category</th>
-                <th className="px-4 py-2.5 font-medium">Brand</th>
-                <th className="px-4 py-2.5 font-medium">Stock</th>
-                <th className="px-4 py-2.5 font-medium">Retail Price</th>
-                <th className="px-4 py-2.5 font-medium">Cost Price</th>
-                <th className="px-4 py-2.5 font-medium">Location</th>
-                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {filtered.map((product) => {
-                const lowStock =
-                  product.reorderLevel !== null && product.stockOnHand <= product.reorderLevel;
-                const variants = variantSummary(product);
-                return (
-                  <tr key={product.id}>
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium text-[#111827]">{product.name}</div>
-                      {variants && <div className="text-xs text-[#6B7280]">{variants}</div>}
-                    </td>
-                    <td className="px-4 py-2.5 text-[#6B7280]">{product.categoryName ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-[#6B7280]">{product.brandName ?? '—'}</td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className={`flex items-center gap-1 ${
-                          lowStock ? 'text-rose-600 font-medium' : 'text-[#111827]'
-                        }`}
-                      >
-                        {lowStock && <AlertTriangle className="w-3.5 h-3.5" />}
-                        {product.stockOnHand} {product.baseUnit}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-[#111827]">{formatPKR(product.retailPrice)}</td>
-                    <td className="px-4 py-2.5 text-[#6B7280]">{formatPKR(product.costPrice)}</td>
-                    <td className="px-4 py-2.5 text-[#6B7280]">{product.rackLocation ?? '—'}</td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(product)}
-                          className="text-[#6B7280] hover:text-[#111827]"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product)}
-                          className="text-[#6B7280] hover:text-rose-600"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
+      <div className="bg-surface border border-border rounded-md overflow-hidden">
+        {isLoading ? (
+          <TableSkeleton cols={8} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={PackageSearch}
+            title={search ? 'No products match your search' : 'No products yet'}
+            description={search ? 'Try a different name, brand, or barcode.' : 'Add your first product to start tracking stock and pricing.'}
+            action={!search && <Button variant="primary" onClick={openCreate}><Plus className="w-4 h-4" />Add Product</Button>}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-[#6B7280]">
-                    {search ? 'No products match your search.' : 'No products yet.'}
-                  </td>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Product</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Category</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Brand</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Stock</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Retail Price</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Cost Price</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Location</th>
+                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((product) => {
+                  const lowStock =
+                    product.reorderLevel !== null && product.stockOnHand <= product.reorderLevel;
+                  const variants = variantSummary(product);
+                  return (
+                    <tr key={product.id} className="hover:bg-surface-sunken/60 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium text-ink">{product.name}</div>
+                        {variants && <div className="text-xs text-ink-muted">{variants}</div>}
+                      </td>
+                      <td className="px-4 py-2.5 text-ink-muted">{product.categoryName ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-ink-muted">{product.brandName ?? '—'}</td>
+                      <td className="px-4 py-2.5">
+                        {lowStock ? (
+                          <span className="inline-flex items-center gap-1 text-danger font-medium">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            {product.stockOnHand} {product.baseUnit}
+                          </span>
+                        ) : (
+                          <span className="text-ink">
+                            {product.stockOnHand} {product.baseUnit}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-ink tabular-nums">{formatPKR(product.retailPrice)}</td>
+                      <td className="px-4 py-2.5 text-ink-muted tabular-nums">{formatPKR(product.costPrice)}</td>
+                      <td className="px-4 py-2.5 text-ink-muted">{product.rackLocation ?? '—'}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openEdit(product)}
+                            aria-label={`Edit ${product.name}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product)}
+                            aria-label={`Delete ${product.name}`}
+                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <ProductFormDialog
         open={dialogOpen}

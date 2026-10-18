@@ -1,5 +1,5 @@
-import { X } from 'lucide-react';
 import { PurchaseOrder } from '../../../shared/types';
+import { Modal } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -7,73 +7,67 @@ function formatPKR(amount: number): string {
 
 export default function PurchaseDetailDialog({ po, onClose }: { po: PurchaseOrder; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-          <h2 className="text-lg font-bold text-[#111827]">{po.poNumber}</h2>
-          <button onClick={onClose} className="text-[#6B7280] hover:text-[#111827]">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 space-y-4 text-sm">
-          <div className="grid grid-cols-2 gap-4 text-[#6B7280]">
-            <div>
-              <div className="text-xs">Supplier</div>
-              <div className="text-[#111827] font-medium">{po.supplierName ?? '—'}</div>
-            </div>
-            <div>
-              <div className="text-xs">Date</div>
-              <div className="text-[#111827] font-medium">{new Date(po.createdDate).toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-xs">Status</div>
-              <div className="text-[#111827] font-medium capitalize">{po.status}</div>
-            </div>
+    <Modal open onClose={onClose} title={po.poNumber} size="lg">
+      <div className="space-y-4 text-sm">
+        <div className="grid grid-cols-3 gap-4 text-ink-muted">
+          <div>
+            <div className="text-xs">Supplier</div>
+            <div className="text-ink font-medium">{po.supplierName ?? '—'}</div>
           </div>
+          <div>
+            <div className="text-xs">Date</div>
+            <div className="text-ink font-medium">{new Date(po.createdDate).toLocaleString()}</div>
+          </div>
+          <div>
+            <div className="text-xs">Status</div>
+            <div className="text-ink font-medium capitalize">{po.status}</div>
+          </div>
+        </div>
 
+        <div className="bg-surface border border-border rounded-md overflow-hidden">
           <table className="w-full">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280] text-xs">
+            <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
               <tr>
-                <th className="px-3 py-2 font-medium">Product</th>
-                <th className="px-3 py-2 font-medium">Qty</th>
-                <th className="px-3 py-2 font-medium">Rate</th>
-                <th className="px-3 py-2 font-medium">Total</th>
+                <th className="px-3 py-2 font-medium text-[12px] uppercase tracking-wide">Product</th>
+                <th className="px-3 py-2 font-medium text-[12px] uppercase tracking-wide">Qty</th>
+                <th className="px-3 py-2 font-medium text-[12px] uppercase tracking-wide">Rate</th>
+                <th className="px-3 py-2 font-medium text-[12px] uppercase tracking-wide">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
+            <tbody className="divide-y divide-border">
               {po.items.map((item, i) => (
-                <tr key={i}>
-                  <td className="px-3 py-2 text-[#111827]">{item.productName}</td>
-                  <td className="px-3 py-2 text-[#6B7280]">
+                <tr key={i} className="hover:bg-surface-sunken/60 transition-colors">
+                  <td className="px-3 py-2 text-ink">{item.productName}</td>
+                  <td className="px-3 py-2 text-ink-muted">
                     {item.quantity} {item.unit}
                   </td>
-                  <td className="px-3 py-2 text-[#6B7280]">{formatPKR(item.unitPrice)}</td>
-                  <td className="px-3 py-2 text-[#111827] font-medium">{formatPKR(item.lineTotal)}</td>
+                  <td className="px-3 py-2 text-ink-muted">{formatPKR(item.unitPrice)}</td>
+                  <td className="px-3 py-2 text-ink font-medium">{formatPKR(item.lineTotal)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
 
-          <div className="space-y-1.5 pt-2 border-t border-[#E5E7EB]">
-            <div className="flex justify-between text-[#6B7280]">
-              <span>Subtotal</span>
-              <span>{formatPKR(po.subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-[#6B7280]">
-              <span>Freight</span>
-              <span>{formatPKR(po.freightAmount)}</span>
-            </div>
-            <div className="flex justify-between font-semibold text-[#111827]">
-              <span>Total</span>
-              <span>{formatPKR(po.total)}</span>
-            </div>
-            <div className="flex justify-between text-[#6B7280]">
-              <span>Paid</span>
-              <span>{formatPKR(po.paidAmount)}</span>
-            </div>
+        <div className="bg-surface-sunken border border-border rounded-md p-4 space-y-1.5">
+          <div className="flex justify-between text-ink-muted">
+            <span>Subtotal</span>
+            <span>{formatPKR(po.subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-ink-muted">
+            <span>Freight</span>
+            <span>{formatPKR(po.freightAmount)}</span>
+          </div>
+          <div className="flex justify-between font-semibold text-ink pt-1.5 border-t border-border">
+            <span>Total</span>
+            <span>{formatPKR(po.total)}</span>
+          </div>
+          <div className="flex justify-between text-ink-muted">
+            <span>Paid</span>
+            <span>{formatPKR(po.paidAmount)}</span>
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

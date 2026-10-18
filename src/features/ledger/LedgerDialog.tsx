@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import { Payment } from '../../../shared/types';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Button, Input, Select, Field, Modal } from '../../components/ui';
 
 interface Props {
   partyType: 'customer' | 'supplier';
@@ -68,112 +68,101 @@ export default function LedgerDialog({ partyType, partyId, partyName, balance, o
   });
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-          <h2 className="text-lg font-bold text-[#111827]">{partyName}</h2>
-          <button onClick={onClose} className="text-[#6B7280] hover:text-[#111827]">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div
-            className={`rounded-lg px-4 py-3 border ${
-              balance > 0 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
-            }`}
-          >
-            <div className="text-xs text-[#6B7280]">
-              {partyType === 'customer' ? 'Receivable Balance' : 'Payable Balance'}
-            </div>
-            <div className="text-lg font-bold text-[#111827]">PKR {balance.toLocaleString('en-PK')}</div>
-          </div>
-
-          {!showForm ? (
-            <button
-              onClick={() => setShowForm(true)}
-              className="w-full py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D]"
+    <Modal
+      open
+      onClose={onClose}
+      title={partyName}
+      footer={
+        showForm ? (
+          <>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => mutation.mutate()}
+              disabled={!amount}
+              loading={mutation.isPending}
             >
-              {partyType === 'customer' ? 'Receive Payment' : 'Record Payment'}
-            </button>
-          ) : (
-            <div className="space-y-3 border border-[#E5E7EB] rounded-lg p-4">
-              {error && (
-                <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-                  {error}
-                </div>
-              )}
-              <div>
-                <label className="block text-xs text-[#6B7280] mb-1">Amount (Max: {balance})</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className={inputCls}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[#6B7280] mb-1">Mode</label>
-                <select value={mode} onChange={(e) => setMode(e.target.value)} className={inputCls}>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="card">Card</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-[#6B7280] mb-1">Notes</label>
-                <input value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} />
-              </div>
-              {Number(amount) > 0 && (
-                <p className="text-xs text-[#6B7280]">
-                  Remaining after payment: PKR {Math.max(0, balance - Number(amount)).toLocaleString('en-PK')}
-                </p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 py-2 rounded-lg text-sm font-medium text-[#6B7280] hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => mutation.mutate()}
-                  disabled={mutation.isPending || !amount}
-                  className="flex-1 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <h3 className="text-sm font-semibold text-[#111827] mb-2">Payment History</h3>
-            <ul className="divide-y divide-[#E5E7EB]">
-              {history.map((p) => (
-                <li key={p.id} className="py-2 flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span>{MODE_ICON[p.mode] ?? '🔄'}</span>
-                    <div>
-                      <div className="text-[#111827]">{new Date(p.createdDate).toLocaleDateString()}</div>
-                      {p.notes && <div className="text-xs text-[#6B7280]">{p.notes}</div>}
-                    </div>
-                  </div>
-                  <span className="font-medium text-[#111827]">PKR {p.amount.toLocaleString('en-PK')}</span>
-                </li>
-              ))}
-              {history.length === 0 && (
-                <li className="py-4 text-center text-sm text-[#6B7280]">No payments yet.</li>
-              )}
-            </ul>
+              Confirm
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
+      <div className="space-y-4">
+        <div
+          className={`rounded-md px-4 py-3 border ${
+            balance > 0 ? 'bg-warning-soft border-warning/20' : 'bg-success-soft border-success/20'
+          }`}
+        >
+          <div className="text-xs text-ink-muted">
+            {partyType === 'customer' ? 'Receivable Balance' : 'Payable Balance'}
           </div>
+          <div className="text-lg font-bold text-ink">PKR {balance.toLocaleString('en-PK')}</div>
+        </div>
+
+        {!showForm ? (
+          <Button variant="primary" className="w-full" onClick={() => setShowForm(true)}>
+            {partyType === 'customer' ? 'Receive Payment' : 'Record Payment'}
+          </Button>
+        ) : (
+          <div className="space-y-3 border border-border rounded-md p-4">
+            {error && (
+              <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
+                {error}
+              </div>
+            )}
+            <Field label={`Amount (Max: ${balance})`}>
+              <Input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                autoFocus
+              />
+            </Field>
+            <Field label="Mode">
+              <Select value={mode} onChange={(e) => setMode(e.target.value)}>
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Card</option>
+                <option value="cheque">Cheque</option>
+              </Select>
+            </Field>
+            <Field label="Notes">
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </Field>
+            {Number(amount) > 0 && (
+              <p className="text-xs text-ink-muted">
+                Remaining after payment: PKR {Math.max(0, balance - Number(amount)).toLocaleString('en-PK')}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div>
+          <h3 className="text-sm font-semibold text-ink mb-2">Payment History</h3>
+          <ul className="divide-y divide-border">
+            {history.map((p) => (
+              <li key={p.id} className="py-2 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span>{MODE_ICON[p.mode] ?? '🔄'}</span>
+                  <div>
+                    <div className="text-ink">{new Date(p.createdDate).toLocaleDateString()}</div>
+                    {p.notes && <div className="text-xs text-ink-muted">{p.notes}</div>}
+                  </div>
+                </div>
+                <span className="font-medium text-ink">PKR {p.amount.toLocaleString('en-PK')}</span>
+              </li>
+            ))}
+            {history.length === 0 && (
+              <li className="py-4 text-center text-sm text-ink-muted">No payments yet.</li>
+            )}
+          </ul>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
-
-const inputCls =
-  'w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40';

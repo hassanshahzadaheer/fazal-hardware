@@ -77,23 +77,22 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`shrink-0 h-screen sticky top-0 flex flex-col text-white transition-all duration-200 ${
+      className={`shrink-0 h-screen sticky top-0 flex flex-col bg-shell text-white transition-[width] duration-200 ease-standard ${
         collapsed ? 'w-[68px]' : 'w-[232px]'
       }`}
-      style={{ background: 'linear-gradient(180deg, #0F2F1D 0%, #14472A 55%, #1F6B3B 100%)' }}
     >
-      <div className="h-14 flex items-center px-4 gap-2 border-b border-white/10 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-white font-bold text-lg shrink-0">
+      <div className="h-14 flex items-center px-4 gap-2.5 border-b border-shell-border shrink-0">
+        <div className="w-7 h-7 rounded-md bg-accent flex items-center justify-center text-white font-bold text-sm shrink-0">
           F
         </div>
-        {!collapsed && <span className="font-bold text-sm truncate">Fazal Hardware</span>}
+        {!collapsed && <span className="font-semibold text-[13px] tracking-tight truncate">Fazal Hardware</span>}
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
             {!collapsed && (
-              <div className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+              <div className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/35">
                 {group.label}
               </div>
             )}
@@ -106,11 +105,12 @@ export default function Sidebar() {
                     key={item.to}
                     to={item.to}
                     title={collapsed ? item.label : undefined}
-                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${
-                      active ? 'bg-white/15 font-semibold text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    className={`relative flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] transition-colors duration-150 ${
+                      active ? 'bg-shell-raised text-white font-medium' : 'text-white/55 hover:bg-shell-raised/60 hover:text-white/90'
                     }`}
                   >
-                    <Icon className="w-4 h-4 shrink-0" />
+                    {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2.5px] rounded-full bg-accent" />}
+                    <Icon className="w-[15px] h-[15px] shrink-0" strokeWidth={2} />
                     {!collapsed && <span className="truncate">{item.label}</span>}
                   </Link>
                 );
@@ -120,20 +120,21 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-2 space-y-1 shrink-0">
+      <div className="border-t border-shell-border p-2 space-y-0.5 shrink-0">
         {!collapsed && user && (
-          <div className="px-2.5 py-1.5 text-xs text-white/60 truncate">{user.email}</div>
+          <div className="px-2.5 py-1.5 text-[12px] text-white/45 truncate">{user.email}</div>
         )}
         <button
           onClick={() => logout()}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white"
+          className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] text-white/55 hover:bg-shell-raised/60 hover:text-white/90 transition-colors"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
+          <LogOut className="w-[15px] h-[15px] shrink-0" />
           {!collapsed && <span>Logout</span>}
         </button>
         <button
           onClick={() => setCollapsed((v) => !v)}
-          className="w-full flex items-center justify-center py-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="w-full flex items-center justify-center py-[7px] rounded-md text-white/35 hover:bg-shell-raised/60 hover:text-white/80 transition-colors"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

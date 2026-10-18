@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, AlertTriangle, Trash2, Upload } from 'lucide-react';
 import { ProductWithNames, Supplier, ExtractedInvoice } from '../../../shared/types';
 import { findBestMatch } from '../../../shared/lib/productMatch';
+import { Button, Input, Select, Field } from '../../components/ui';
 
 type Step = 'upload' | 'processing' | 'review';
 
@@ -131,46 +132,51 @@ export default function AIScannerPage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-[#111827] mb-6">AI Invoice Scanner</h1>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold text-ink tracking-tight">AI Invoice Scanner</h1>
+        <p className="text-[13px] text-ink-muted mt-0.5">
+          Photograph a supplier invoice and let AI turn it into a draft purchase.
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-4 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+        <div className="mb-4 text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
           {error}
         </div>
       )}
 
       {step === 'upload' && (
         <div className="space-y-4">
-          <div className="text-sm bg-blue-50 text-blue-800 border border-blue-200 rounded-lg px-4 py-3">
+          <div className="text-sm bg-accent-soft text-accent border border-accent-soft-border rounded-md px-4 py-3">
             Photograph any supplier invoice — printed or handwritten — and AI will read the items and enter them
             as a purchase for you to review.
           </div>
           <button
             onClick={handleChooseFile}
-            className="w-full border-2 border-dashed border-[#E5E7EB] rounded-xl py-12 flex flex-col items-center gap-2 text-[#6B7280] hover:border-[#1F6B3B] hover:text-[#1F6B3B] transition-colors"
+            className="w-full border-2 border-dashed border-border rounded-lg py-12 flex flex-col items-center gap-2 text-ink-muted hover:border-accent hover:text-accent transition-colors"
           >
             <Upload className="w-8 h-8" />
             <span className="font-medium">Choose File</span>
             <span className="text-xs">JPG, PNG, or PDF</span>
           </button>
-          <div className="grid grid-cols-3 gap-3 text-xs text-[#6B7280]">
-            <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 text-center">Any quality works</div>
-            <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 text-center">Handwritten OK</div>
-            <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 text-center">Fast & automatic</div>
+          <div className="grid grid-cols-3 gap-3 text-xs text-ink-muted">
+            <div className="bg-surface border border-border rounded-md p-3 text-center">Any quality works</div>
+            <div className="bg-surface border border-border rounded-md p-3 text-center">Handwritten OK</div>
+            <div className="bg-surface border border-border rounded-md p-3 text-center">Fast & automatic</div>
           </div>
         </div>
       )}
 
       {step === 'processing' && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-10 h-10 border-4 border-[#1F6B3B]/30 border-t-[#1F6B3B] rounded-full animate-spin" />
-          <p className="text-sm text-[#6B7280]">{PROCESSING_MESSAGES[processingMsgIndex]}</p>
+          <div className="w-10 h-10 border-4 border-accent/25 border-t-accent rounded-full animate-spin" />
+          <p className="text-sm text-ink-muted">{PROCESSING_MESSAGES[processingMsgIndex]}</p>
         </div>
       )}
 
       {step === 'review' && (
         <div className="space-y-4">
-          <div className="text-sm bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg px-4 py-3">
+          <div className="text-sm bg-success-soft text-success border border-success/20 rounded-md px-4 py-3">
             Invoice scanned successfully! {matchedCount} matched, {unmatchedCount} need review.
             <button onClick={() => setStep('upload')} className="ml-2 underline font-medium">
               Scan Again
@@ -178,109 +184,100 @@ export default function AIScannerPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1">Supplier</label>
-              <select
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm"
-              >
+            <Field label="Supplier">
+              <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
                 <option value="">—</option>
                 {(suppliers ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1">Invoice Date</label>
-              <input
-                value={invoiceDate ?? ''}
-                readOnly
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm bg-[#F7F8FA] text-[#6B7280]"
-              />
+              </Select>
+            </Field>
+            <Field label="Invoice Date">
+              <Input value={invoiceDate ?? ''} readOnly disabled />
+            </Field>
+          </div>
+
+          <div className="bg-surface border border-border rounded-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
+                  <tr>
+                    <th className="px-3 py-2.5 w-8"></th>
+                    <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide">What AI Read</th>
+                    <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide">Match to Your Product</th>
+                    <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide w-20">Qty</th>
+                    <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide w-24">Rate</th>
+                    <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide w-24">Total</th>
+                    <th className="px-3 py-2.5 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.map((it, i) => (
+                    <tr key={i} className="hover:bg-surface-sunken/60 transition-colors">
+                      <td className="px-3 py-2">
+                        {it.productId ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-warning" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-ink-muted">{it.description}</td>
+                      <td className="px-3 py-2">
+                        <Select
+                          value={it.productId ?? ''}
+                          onChange={(e) => updateItem(i, { productId: e.target.value ? Number(e.target.value) : null })}
+                        >
+                          <option value="">— Unmatched —</option>
+                          {(products ?? []).map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          value={it.quantity}
+                          onChange={(e) => updateItem(i, { quantity: Number(e.target.value) })}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          value={it.rate}
+                          onChange={(e) => updateItem(i, { rate: Number(e.target.value) })}
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-ink font-medium tabular-nums">
+                        PKR {(it.quantity * it.rate).toLocaleString('en-PK')}
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => removeItem(i)}
+                          aria-label="Remove item"
+                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <table className="w-full text-sm bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-            <thead className="bg-[#F7F8FA] text-left text-[#6B7280]">
-              <tr>
-                <th className="px-3 py-2 w-8"></th>
-                <th className="px-3 py-2 font-medium">What AI Read</th>
-                <th className="px-3 py-2 font-medium">Match to Your Product</th>
-                <th className="px-3 py-2 font-medium w-20">Qty</th>
-                <th className="px-3 py-2 font-medium w-24">Rate</th>
-                <th className="px-3 py-2 font-medium w-24">Total</th>
-                <th className="px-3 py-2 w-8"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {items.map((it, i) => (
-                <tr key={i}>
-                  <td className="px-3 py-2">
-                    {it.productId ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-[#6B7280]">{it.description}</td>
-                  <td className="px-3 py-2">
-                    <select
-                      value={it.productId ?? ''}
-                      onChange={(e) => updateItem(i, { productId: e.target.value ? Number(e.target.value) : null })}
-                      className="w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm"
-                    >
-                      <option value="">— Unmatched —</option>
-                      {(products ?? []).map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      value={it.quantity}
-                      onChange={(e) => updateItem(i, { quantity: Number(e.target.value) })}
-                      className="w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      value={it.rate}
-                      onChange={(e) => updateItem(i, { rate: Number(e.target.value) })}
-                      className="w-full px-2 py-1 border border-[#E5E7EB] rounded text-sm"
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-[#111827] font-medium">
-                    PKR {(it.quantity * it.rate).toLocaleString('en-PK')}
-                  </td>
-                  <td className="px-3 py-2">
-                    <button onClick={() => removeItem(i)} className="text-[#6B7280] hover:text-rose-600">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="flex items-center justify-between bg-white border border-[#E5E7EB] rounded-lg p-4">
-            <div className="text-sm text-[#6B7280]">
+          <div className="flex items-center justify-between bg-surface border border-border rounded-md p-4">
+            <div className="text-sm text-ink-muted">
               {matchedCount} matched · {unmatchedCount} unmatched · Grand total: PKR{' '}
               {grandTotal.toLocaleString('en-PK')}
             </div>
-            <button
-              onClick={handleSave}
-              disabled={submitting}
-              className="px-5 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-            >
-              {submitting ? 'Saving…' : 'Save to Purchases'}
-            </button>
+            <Button variant="primary" onClick={handleSave} loading={submitting}>
+              Save to Purchases
+            </Button>
           </div>
         </div>
       )}

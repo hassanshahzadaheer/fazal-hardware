@@ -1,7 +1,8 @@
-import { useState, FormEvent, ComponentType } from 'react';
+import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tag, Bookmark, Trash2, DatabaseBackup } from 'lucide-react';
+import { Tag, Bookmark, Trash2, DatabaseBackup, FolderOpen, LucideIcon } from 'lucide-react';
 import { notify } from '../../components/shared/NotificationProvider';
+import { Button, Input, Field, EmptyState, TableSkeleton, confirmDialog } from '../../components/ui';
 
 type Tab = 'categories' | 'brands' | 'company' | 'backup';
 
@@ -17,17 +18,18 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-8">
-      <h1 className="text-2xl font-bold text-[#111827] mb-6">Settings</h1>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold text-ink tracking-tight">Settings</h1>
+        <p className="text-[13px] text-ink-muted mt-0.5">Catalog taxonomy, company details, and backups.</p>
+      </div>
 
-      <div className="flex gap-1 mb-6 border-b border-[#E5E7EB]">
+      <div className="flex gap-1 mb-6 border-b border-border">
         {TABS.map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === key
-                ? 'border-[#1F6B3B] text-[#1F6B3B]'
-                : 'border-transparent text-[#6B7280] hover:text-[#111827]'
+            className={`px-4 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
+              tab === key ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
           >
             {label}
@@ -50,15 +52,13 @@ interface NameListItem {
 
 function NameListTab({
   icon: Icon,
-  iconColor,
   placeholder,
   queryKey,
   list,
   create,
   del,
 }: {
-  icon: ComponentType<{ className?: string }>;
-  iconColor: string;
+  icon: LucideIcon;
   placeholder: string;
   queryKey: string;
   list: () => Promise<any>;
@@ -104,46 +104,55 @@ function NameListTab({
     createMutation.mutate({ name: name.trim() });
   };
 
+  const handleDelete = async (item: NameListItem) => {
+    const confirmed = await confirmDialog({
+      title: 'Delete this entry?',
+      description: `"${item.name}" will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (confirmed) deleteMutation.mutate(item.id);
+  };
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
-        <input
+        <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={createMutation.isPending || !name.trim()}
-          className="px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-        >
+        <Button type="submit" variant="primary" loading={createMutation.isPending} disabled={!name.trim()}>
           Add
-        </button>
+        </Button>
       </form>
 
-      {isLoading && <p className="text-sm text-[#6B7280]">Loading…</p>}
-
-      <ul className="divide-y divide-[#E5E7EB] bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        {(data ?? []).map((item) => (
-          <li key={item.id} className="flex items-center justify-between px-4 py-2.5 group">
-            <span className="flex items-center gap-2 text-sm text-[#111827]">
-              <Icon className={`w-4 h-4 ${iconColor}`} />
-              {item.name}
-            </span>
-            <button
-              onClick={() => deleteMutation.mutate(item.id)}
-              className="opacity-0 group-hover:opacity-100 text-[#6B7280] hover:text-rose-600 transition-opacity"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </li>
-        ))}
-        {data && data.length === 0 && (
-          <li className="px-4 py-6 text-center text-sm text-[#6B7280]">None yet.</li>
+      <div className="bg-surface border border-border rounded-md overflow-hidden">
+        {isLoading ? (
+          <TableSkeleton rows={3} cols={1} />
+        ) : data && data.length === 0 ? (
+          <EmptyState icon={Icon} title="None yet" description="Add your first entry above." />
+        ) : (
+          <ul className="divide-y divide-border">
+            {(data ?? []).map((item) => (
+              <li key={item.id} className="flex items-center justify-between px-4 py-2.5 group">
+                <span className="flex items-center gap-2 text-sm text-ink">
+                  <Icon className="w-4 h-4 text-accent" />
+                  {item.name}
+                </span>
+                <button
+                  onClick={() => handleDelete(item)}
+                  aria-label={`Delete ${item.name}`}
+                  className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -152,7 +161,6 @@ function CategoriesTab() {
   return (
     <NameListTab
       icon={Tag}
-      iconColor="text-blue-600"
       placeholder="New category name"
       queryKey="categories"
       list={window.api.categories.list}
@@ -166,7 +174,6 @@ function BrandsTab() {
   return (
     <NameListTab
       icon={Bookmark}
-      iconColor="text-purple-600"
       placeholder="New brand name"
       queryKey="brands"
       list={window.api.brands.list}
@@ -224,19 +231,13 @@ function CompanyInfoTab() {
   });
 
   if (isLoading || !current) {
-    return <p className="text-sm text-[#6B7280]">Loading…</p>;
+    return <TableSkeleton rows={4} cols={1} />;
   }
 
   const field = (key: keyof CompanyForm, label: string, type = 'text') => (
-    <div>
-      <label className="block text-sm font-medium text-[#111827] mb-1">{label}</label>
-      <input
-        type={type}
-        value={current[key]}
-        onChange={(e) => setForm({ ...current, [key]: e.target.value })}
-        className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B3B]/40"
-      />
-    </div>
+    <Field label={label}>
+      <Input type={type} value={current[key]} onChange={(e) => setForm({ ...current, [key]: e.target.value })} />
+    </Field>
   );
 
   const handleSubmit = (e: FormEvent) => {
@@ -245,18 +246,14 @@ function CompanyInfoTab() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-[#E5E7EB] rounded-lg p-5 space-y-4 max-w-md">
+    <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-md p-5 space-y-4 max-w-md">
       {field('companyName', 'Company Name')}
       {field('address', 'Address')}
       {field('phone', 'Phone')}
       {field('email', 'Email', 'email')}
-      <button
-        type="submit"
-        disabled={updateMutation.isPending}
-        className="px-4 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-      >
-        {updateMutation.isPending ? 'Saving…' : 'Save'}
-      </button>
+      <Button type="submit" variant="primary" loading={updateMutation.isPending}>
+        Save
+      </Button>
     </form>
   );
 }
@@ -276,9 +273,13 @@ function BackupTab() {
   };
 
   const handleRestore = async () => {
-    if (!confirm('Restoring will replace all current data with the backup file. This cannot be undone. Continue?')) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      title: 'Restore from backup?',
+      description: 'Restoring will replace all current data with the backup file. This cannot be undone.',
+      confirmLabel: 'Restore',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     setWorking('restore');
     const res = await window.api.backup.restore();
     setWorking(null);
@@ -291,29 +292,28 @@ function BackupTab() {
   };
 
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 max-w-md space-y-4">
-      <div className="flex items-center gap-2 text-[#111827] font-semibold">
-        <DatabaseBackup className="w-5 h-5 text-[#1F6B3B]" />
+    <div className="bg-surface border border-border rounded-md p-5 max-w-md space-y-4">
+      <div className="flex items-center gap-2 text-ink font-semibold">
+        <DatabaseBackup className="w-5 h-5 text-accent" />
         Backup & Restore
       </div>
-      <p className="text-sm text-[#6B7280]">
+      <p className="text-sm text-ink-muted">
         Export the entire database to a file you choose, or restore from a previously saved backup.
       </p>
       <div className="flex gap-2">
-        <button
-          onClick={handleBackup}
-          disabled={working !== null}
-          className="flex-1 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
-        >
-          {working === 'backup' ? 'Saving…' : 'Backup Now'}
-        </button>
-        <button
+        <Button variant="primary" className="flex-1" onClick={handleBackup} loading={working === 'backup'} disabled={working !== null}>
+          <FolderOpen className="w-4 h-4" />
+          Backup Now
+        </Button>
+        <Button
+          variant="secondary"
+          className="flex-1 text-danger hover:bg-danger-soft"
           onClick={handleRestore}
+          loading={working === 'restore'}
           disabled={working !== null}
-          className="flex-1 py-2 rounded-lg border border-[#E5E7EB] text-rose-600 text-sm font-semibold hover:bg-rose-50 disabled:opacity-60"
         >
-          {working === 'restore' ? 'Restoring…' : 'Restore from Backup'}
-        </button>
+          Restore from Backup
+        </Button>
       </div>
     </div>
   );
