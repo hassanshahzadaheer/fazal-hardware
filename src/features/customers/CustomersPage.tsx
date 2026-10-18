@@ -1,8 +1,9 @@
 import { useMemo, useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, BookOpenText } from 'lucide-react';
 import { Customer } from '../../../shared/types';
 import { CUSTOMER_TYPES, CustomerType } from '../../../shared/constants';
+import LedgerDialog from '../ledger/LedgerDialog';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -19,6 +20,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [viewingLedger, setViewingLedger] = useState<Customer | null>(null);
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers'],
@@ -135,6 +137,13 @@ export default function CustomersPage() {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setViewingLedger(customer)}
+                        className="text-[#6B7280] hover:text-[#111827]"
+                        title="Ledger"
+                      >
+                        <BookOpenText className="w-4 h-4" />
+                      </button>
                       <button onClick={() => openEdit(customer)} className="text-[#6B7280] hover:text-[#111827]" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -163,6 +172,15 @@ export default function CustomersPage() {
 
       {dialogOpen && (
         <CustomerFormDialog customer={editing} onClose={() => setDialogOpen(false)} onSaved={handleSaved} />
+      )}
+      {viewingLedger && (
+        <LedgerDialog
+          partyType="customer"
+          partyId={viewingLedger.id}
+          partyName={viewingLedger.name}
+          balance={viewingLedger.balance}
+          onClose={() => setViewingLedger(null)}
+        />
       )}
     </div>
   );

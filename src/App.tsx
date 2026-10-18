@@ -7,6 +7,16 @@ import SettingsPage from './features/settings/SettingsPage';
 import ProductsPage from './features/products/ProductsPage';
 import CustomersPage from './features/customers/CustomersPage';
 import SuppliersPage from './features/suppliers/SuppliersPage';
+import StockPage from './features/stock/StockPage';
+import SalesPage from './features/sales/SalesPage';
+import NewSalePage from './features/sales/NewSalePage';
+import PurchasesPage from './features/purchases/PurchasesPage';
+import NewPurchasePage from './features/purchases/NewPurchasePage';
+import PaymentsPage from './features/payments/PaymentsPage';
+import CreditAccountsPage from './features/credit-accounts/CreditAccountsPage';
+import QuotationsPage from './features/quotations/QuotationsPage';
+import NewQuotationPage from './features/quotations/NewQuotationPage';
+import ExpensesPage from './features/expenses/ExpensesPage';
 
 const queryClient = new QueryClient();
 
@@ -46,6 +56,27 @@ function ProtectedShell() {
           </Link>
           <Link to="/products" className="text-[#6B7280] hover:text-[#111827]">
             Products
+          </Link>
+          <Link to="/stock" className="text-[#6B7280] hover:text-[#111827]">
+            Stock
+          </Link>
+          <Link to="/sales" className="text-[#6B7280] hover:text-[#111827]">
+            Sales
+          </Link>
+          <Link to="/purchases" className="text-[#6B7280] hover:text-[#111827]">
+            Purchases
+          </Link>
+          <Link to="/payments" className="text-[#6B7280] hover:text-[#111827]">
+            Payments
+          </Link>
+          <Link to="/credit-accounts" className="text-[#6B7280] hover:text-[#111827]">
+            Credit Accounts
+          </Link>
+          <Link to="/quotations" className="text-[#6B7280] hover:text-[#111827]">
+            Quotations
+          </Link>
+          <Link to="/expenses" className="text-[#6B7280] hover:text-[#111827]">
+            Expenses
           </Link>
           <Link to="/customers" className="text-[#6B7280] hover:text-[#111827]">
             Customers
@@ -118,6 +149,16 @@ function MainAppContent() {
         >
           <Route index element={<HomePlaceholder />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="stock" element={<StockPage />} />
+          <Route path="sales" element={<SalesPage />} />
+          <Route path="sales/new" element={<NewSalePage />} />
+          <Route path="purchases" element={<PurchasesPage />} />
+          <Route path="purchases/new" element={<NewPurchasePage />} />
+          <Route path="payments" element={<PaymentsPage />} />
+          <Route path="credit-accounts" element={<CreditAccountsPage />} />
+          <Route path="quotations" element={<QuotationsPage />} />
+          <Route path="quotations/new" element={<NewQuotationPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route path="settings" element={<SettingsPage />} />

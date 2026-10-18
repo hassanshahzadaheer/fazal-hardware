@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import log from 'electron-log';
 import { initDb, closeDb, getDb } from './db';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense } from '../shared/types';
 import { login } from './handlers/auth';
 import * as categoriesHandler from './handlers/categories';
 import * as brandsHandler from './handlers/brands';
@@ -10,6 +10,12 @@ import * as settingsHandler from './handlers/settings';
 import * as productsHandler from './handlers/products';
 import * as customersHandler from './handlers/customers';
 import * as suppliersHandler from './handlers/suppliers';
+import * as stockHandler from './handlers/stock';
+import * as salesHandler from './handlers/sales';
+import * as purchasesHandler from './handlers/purchases';
+import * as paymentsHandler from './handlers/payments';
+import * as quotationsHandler from './handlers/quotations';
+import * as expensesHandler from './handlers/expenses';
 
 log.initialize();
 log.info('Starting Fazal Hardware...');
@@ -189,4 +195,76 @@ ipcMain.handle('suppliers:update', async (_event, { id, payload }): Promise<Resu
 
 ipcMain.handle('suppliers:delete', async (_event, id): Promise<Result<null>> => {
   return suppliersHandler.remove(getDb(), id);
+});
+
+ipcMain.handle('stock:adjust', async (_event, payload): Promise<Result<StockMovement>> => {
+  return stockHandler.adjust(getDb(), payload);
+});
+
+ipcMain.handle('stock:history', async (_event, productId): Promise<Result<StockMovement[]>> => {
+  return stockHandler.history(getDb(), productId);
+});
+
+ipcMain.handle('sales:list', async (): Promise<Result<SaleInvoice[]>> => {
+  return salesHandler.list(getDb());
+});
+
+ipcMain.handle('sales:get', async (_event, id): Promise<Result<SaleInvoice>> => {
+  return salesHandler.get(getDb(), id);
+});
+
+ipcMain.handle('sales:create', async (_event, payload): Promise<Result<SaleInvoice>> => {
+  return salesHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('sales:return', async (_event, { id, items, notes }): Promise<Result<SaleInvoice>> => {
+  return salesHandler.returnSale(getDb(), id, items, notes);
+});
+
+ipcMain.handle('purchases:list', async (): Promise<Result<PurchaseOrder[]>> => {
+  return purchasesHandler.list(getDb());
+});
+
+ipcMain.handle('purchases:get', async (_event, id): Promise<Result<PurchaseOrder>> => {
+  return purchasesHandler.get(getDb(), id);
+});
+
+ipcMain.handle('purchases:create', async (_event, payload): Promise<Result<PurchaseOrder>> => {
+  return purchasesHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('payments:list', async (): Promise<Result<Payment[]>> => {
+  return paymentsHandler.list(getDb());
+});
+
+ipcMain.handle('payments:create', async (_event, payload): Promise<Result<Payment>> => {
+  return paymentsHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('quotations:list', async (): Promise<Result<Quotation[]>> => {
+  return quotationsHandler.list(getDb());
+});
+
+ipcMain.handle('quotations:get', async (_event, id): Promise<Result<Quotation>> => {
+  return quotationsHandler.get(getDb(), id);
+});
+
+ipcMain.handle('quotations:create', async (_event, payload): Promise<Result<Quotation>> => {
+  return quotationsHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('expenses:list', async (): Promise<Result<Expense[]>> => {
+  return expensesHandler.list(getDb());
+});
+
+ipcMain.handle('expenses:create', async (_event, payload): Promise<Result<Expense>> => {
+  return expensesHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('expenses:update', async (_event, { id, payload }): Promise<Result<Expense>> => {
+  return expensesHandler.update(getDb(), id, payload);
+});
+
+ipcMain.handle('expenses:delete', async (_event, id): Promise<Result<null>> => {
+  return expensesHandler.remove(getDb(), id);
 });

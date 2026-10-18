@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense } from '../shared/types';
 
 // IPC surface will grow here module-by-module per docs/Fazal_Hardware_PRD.md.
 contextBridge.exposeInMainWorld('api', {
@@ -49,5 +49,38 @@ contextBridge.exposeInMainWorld('api', {
     update: (id: number, payload: unknown): Promise<Result<Supplier>> =>
       ipcRenderer.invoke('suppliers:update', { id, payload }),
     delete: (id: number): Promise<Result<null>> => ipcRenderer.invoke('suppliers:delete', id),
+  },
+  stock: {
+    adjust: (payload: unknown): Promise<Result<StockMovement>> => ipcRenderer.invoke('stock:adjust', payload),
+    history: (productId: number): Promise<Result<StockMovement[]>> =>
+      ipcRenderer.invoke('stock:history', productId),
+  },
+  sales: {
+    list: (): Promise<Result<SaleInvoice[]>> => ipcRenderer.invoke('sales:list'),
+    get: (id: number): Promise<Result<SaleInvoice>> => ipcRenderer.invoke('sales:get', id),
+    create: (payload: unknown): Promise<Result<SaleInvoice>> => ipcRenderer.invoke('sales:create', payload),
+    return: (id: number, items: unknown, notes?: string | null): Promise<Result<SaleInvoice>> =>
+      ipcRenderer.invoke('sales:return', { id, items, notes }),
+  },
+  purchases: {
+    list: (): Promise<Result<PurchaseOrder[]>> => ipcRenderer.invoke('purchases:list'),
+    get: (id: number): Promise<Result<PurchaseOrder>> => ipcRenderer.invoke('purchases:get', id),
+    create: (payload: unknown): Promise<Result<PurchaseOrder>> => ipcRenderer.invoke('purchases:create', payload),
+  },
+  payments: {
+    list: (): Promise<Result<Payment[]>> => ipcRenderer.invoke('payments:list'),
+    create: (payload: unknown): Promise<Result<Payment>> => ipcRenderer.invoke('payments:create', payload),
+  },
+  quotations: {
+    list: (): Promise<Result<Quotation[]>> => ipcRenderer.invoke('quotations:list'),
+    get: (id: number): Promise<Result<Quotation>> => ipcRenderer.invoke('quotations:get', id),
+    create: (payload: unknown): Promise<Result<Quotation>> => ipcRenderer.invoke('quotations:create', payload),
+  },
+  expenses: {
+    list: (): Promise<Result<Expense[]>> => ipcRenderer.invoke('expenses:list'),
+    create: (payload: unknown): Promise<Result<Expense>> => ipcRenderer.invoke('expenses:create', payload),
+    update: (id: number, payload: unknown): Promise<Result<Expense>> =>
+      ipcRenderer.invoke('expenses:update', { id, payload }),
+    delete: (id: number): Promise<Result<null>> => ipcRenderer.invoke('expenses:delete', id),
   },
 });

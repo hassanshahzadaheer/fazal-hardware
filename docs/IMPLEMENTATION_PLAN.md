@@ -88,126 +88,114 @@ Rebuild Fazal Hardware as an offline-first Electron desktop app: React 18 + Vite
 
 ## Phase 3: Stock Management
 
-- [ ] **Task 3.1** — `StockMovement` handler: create movement + atomically update `products.stock_on_hand`; types `adjustment | wastage | opening` per §8.3 sign rules.
-  - Acceptance: wastage always subtracts, opening always adds, adjustment accepts signed quantity; movement row always created.
-  - Verify: vitest covering all three types including sign edge cases.
-  - Dependencies: 2.2.
+- [x] ~~**Task 3.1** — `StockMovement` handler: create movement + atomically update `products.stock_on_hand`; types `adjustment | wastage | opening` per §8.3 sign rules.~~
   - Files: `electron/handlers/stock.ts`.
+  - **Done, uncommitted** — 8/8 tests (all three sign rules, zero-qty rejection, NOT_FOUND, cost_price_at_time capture, history ordering).
 
-- [ ] **Task 3.2** — `StockPage`: All Stock / Low Stock tabs, `StockAdjustDialog`, `StockHistoryDialog` (§8.2–§8.4).
-  - Acceptance: adjusting stock from the UI updates the on-hand value live; history dialog lists all movements for a product with correct +/- signs.
-  - Verify: manual run through adjust → history flow.
-  - Dependencies: 3.1.
+- [x] ~~**Task 3.2** — `StockPage`: All Stock / Low Stock tabs, `StockAdjustDialog`, `StockHistoryDialog` (§8.2–§8.4).~~
   - Files: `src/features/stock/StockPage.tsx`, `src/features/stock/StockAdjustDialog.tsx`, `src/features/stock/StockHistoryDialog.tsx`.
+  - **Done, uncommitted.** Not manually clicked through.
 
 ### Checkpoint — Stock
-- [ ] Stock adjustments correctly move `stock_on_hand` and leave an audit trail. Review before Phase 4.
+- [x] ~~Stock adjustments correctly move `stock_on_hand` and leave an audit trail.~~ Automated only — no manual run this phase.
+- [ ] Review before Phase 4.
 
 ## Phase 4: Sales & Billing (critical path)
 
-- [ ] **Task 4.1** — Sequential invoice-number generator (table-backed counter, not random) + `SaleInvoice` handler skeleton (create/get/list only, no business logic yet).
-  - Acceptance: concurrent-safe sequential numbers (e.g. `INV-20261018-0001`); list/get work on an empty table.
-  - Verify: vitest generating N numbers concurrently, asserting uniqueness and order.
-  - Dependencies: 1.1–1.3.
+- [x] ~~**Task 4.1** — Sequential invoice-number generator (table-backed counter, not random) + `SaleInvoice` handler skeleton.~~
   - Files: `electron/handlers/sales.ts`, `electron/lib/sequences.ts`.
+  - **Done, uncommitted** — 7/7 sequence tests incl. 100 unique numbers in a row.
 
-- [ ] **Task 4.2** — New Sale page shell: product search + add-to-cart, dimensional (L×W) toggle, line-item table with qty/length/width/price/discount/total, using the effective-qty formula (§22.1) via `decimal.js`.
-  - Acceptance: adding a dimensional product with L×W computes `qty × L × W × price × (1 - disc%)`; toggling dimensional mode shows/hides L×W columns without losing entered data.
-  - Verify: unit test on the line-total calculation helper; manual UI check.
-  - Dependencies: 2.2, 4.1.
+- [x] ~~**Task 4.2** — New Sale page shell: product search, dimensional (L×W) toggle, line-item table, effective-qty formula (§22.1) via `decimal.js`.~~
   - Files: `src/features/sales/NewSalePage.tsx`, `src/features/sales/lineTotal.ts`.
+  - **Done, uncommitted** — 6/6 tests on the calc helper, including one proving `decimal.js` avoids the float drift plain `0.1*3` would introduce.
 
-- [ ] **Task 4.3** — Submission logic end to end (§9.3): create invoice → per-line `StockMovement` (negative) + stock decrement → customer balance increase if unpaid → `Payment` record if `paid > 0`.
-  - Acceptance: a credit sale leaves `stock_on_hand` reduced, `customers.balance` increased by the unpaid amount, and no stray Payment row; a cash sale creates a Payment and leaves balance untouched.
-  - Verify: vitest covering cash / credit / partial payment modes end to end against a test DB.
-  - Dependencies: 3.1, 4.2.
+- [x] ~~**Task 4.3** — Submission logic end to end (§9.3).~~
   - Files: `electron/handlers/sales.ts`.
+  - **Done, uncommitted** — 12/12 tests: cash/credit/partial payment modes, walk-in sales, and critically a rollback test (invalid product → whole transaction reverts, no orphan invoice row). This was the plan's own highest-risk item; it's the most heavily tested handler in the codebase so far.
 
-- [ ] **Task 4.4** — Sales list page + `SaleDetailDialog` (§9.1, §9.5).
-  - Acceptance: search by invoice #/customer; status badges match §6.5 colors; detail dialog shows full line items and totals.
-  - Verify: manual check.
-  - Dependencies: 4.3.
+- [x] ~~**Task 4.4** — Sales list page + `SaleDetailDialog` (§9.1, §9.5).~~
   - Files: `src/features/sales/SalesPage.tsx`, `src/features/sales/SaleDetailDialog.tsx`.
+  - **Done, uncommitted.**
 
-- [ ] **Task 4.5** — `SaleReturnDialog` + return logic (§9.6): per-item return ≤ sold qty, positive `StockMovement`, invoice status → `returned`, customer balance decreased.
-  - Acceptance: returning part of an invoice restores stock and reduces the customer's balance by the return total only (not the full invoice).
-  - Verify: vitest for partial and full returns.
-  - Dependencies: 4.3, 4.4.
+- [x] ~~**Task 4.5** — `SaleReturnDialog` + return logic (§9.6).~~
   - Files: `src/features/sales/SaleReturnDialog.tsx`, `electron/handlers/sales.ts`.
+  - **Done, uncommitted** — covered in the same 12 sales.ts tests: full return, partial return, over-return rejection, double-return rejection. One deliberate spec-literal judgment call: a return decreases customer balance by the return total even on an already-fully-paid invoice (can go negative) — matches the PRD's pseudocode exactly; not listed in §26.2's known gaps, so left as specified rather than "fixed" unprompted. Flagging it here in case you want it changed.
 
 ### Checkpoint — Sales
-- [ ] Full counter-billing flow works: search → cart → payment → invoice → stock/balance updated → return reverses correctly. This is the PRD's highest-priority path (§2.3 target: <30s billing) — test it by hand, not just via vitest. Review before Phase 5.
+- [x] ~~Full counter-billing flow works: search → cart → payment → invoice → stock/balance updated → return reverses correctly.~~ — 12/12 automated, but this is the PRD's §2.3 highest-priority path and **has not been clicked through by hand**. Given Phase 1's manual check caught a real bug that tests alone missed, this is the single most important page to actually run before trusting it.
+- [ ] Review before Phase 5.
 
 ## Phase 5: Purchases / GRN
 
-- [ ] **Task 5.1** — Sequential PO-number generator + `PurchaseOrder` handler skeleton.
-  - Dependencies: 1.1–1.3. Files: `electron/handlers/purchases.ts`.
-
-- [ ] **Task 5.2** — New Purchase page: product search defaulting qty to `purchase_unit_factor` and price to `cost_price` (§10.2), no dimensional/discount columns.
-  - Acceptance: adding a product pre-fills qty/price per the factor; line total = qty × price only.
-  - Dependencies: 2.2, 5.1. Files: `src/features/purchases/NewPurchasePage.tsx`.
-
-- [ ] **Task 5.3** — Submission logic (§10.3): positive `StockMovement`, stock increment, **and** `products.cost_price` updated to the latest purchase price; supplier balance increase if unpaid; Payment if `paid > 0`.
-  - Acceptance: after a purchase, `cost_price` reflects the new purchase rate, not the old one.
-  - Verify: vitest asserting cost_price mutation alongside stock/balance effects.
-  - Dependencies: 3.1, 5.2.
-  - Files: `electron/handlers/purchases.ts`.
-
-- [ ] **Task 5.4** — Purchases list page + `PurchaseDetailDialog` (§10.1, §10.4).
-  - Dependencies: 5.3. Files: `src/features/purchases/PurchasesPage.tsx`, `src/features/purchases/PurchaseDetailDialog.tsx`.
+- [x] ~~**Task 5.1** — Sequential PO-number generator + `PurchaseOrder` handler skeleton.~~
+- [x] ~~**Task 5.2** — New Purchase page: qty defaults to `purchase_unit_factor`, price to `cost_price` (§10.2), no dimensional/discount columns.~~
+- [x] ~~**Task 5.3** — Submission logic (§10.3): stock increment + `cost_price` updated to latest purchase price + supplier balance + Payment.~~
+- [x] ~~**Task 5.4** — Purchases list page + `PurchaseDetailDialog` (§10.1, §10.4).~~
+  - Files: `electron/handlers/purchases.ts`, `src/features/purchases/NewPurchasePage.tsx`, `src/features/purchases/PurchasesPage.tsx`, `src/features/purchases/PurchaseDetailDialog.tsx`.
+  - **Done, uncommitted** — 6/6 tests, including the cost_price-update assertion and a rollback test mirroring sales.ts's.
 
 ### Checkpoint — Purchases
-- [ ] Purchase flow updates stock, cost price, and supplier payable correctly; GRN list/detail render. Review before Phase 6.
+- [x] ~~Purchase flow updates stock, cost price, and supplier payable correctly; GRN list/detail render.~~ Automated only.
+- [ ] Review before Phase 6.
 
 ## Phase 6: Payments & Credit Accounts (Udhaar)
 
-- [ ] **Task 6.1** — Manual `Payment` creation IPC (direction received/paid, reference_type `general`) + balance update (`max(0, balance - amount)`).
-  - Dependencies: 1.1–1.3. Files: `electron/handlers/payments.ts`.
+- [x] ~~**Task 6.1** — Manual `Payment` creation IPC + balance update (`max(0, balance - amount)`).~~
+  - Files: `electron/handlers/payments.ts`.
+  - **Done, uncommitted** — 7/7 tests, including the balance-floors-at-zero case.
 
-- [ ] **Task 6.2** — `LedgerDialog` (shared between Customers §11.3 and Suppliers §12.3) — balance display, payment form, payment history list.
-  - Acceptance: receiving/recording a payment reduces balance and appears in history immediately.
-  - Dependencies: 2.3, 2.4, 6.1. Files: `src/features/ledger/LedgerDialog.tsx`.
+- [x] ~~**Task 6.2** — `LedgerDialog` (shared between Customers §11.3 and Suppliers §12.3).~~
+  - Files: `src/features/ledger/LedgerDialog.tsx`. Wired into both `CustomersPage.tsx` and `SuppliersPage.tsx` via a new ledger-icon action.
+  - **Done, uncommitted.**
 
-- [ ] **Task 6.3** — Payments list page: summary cards (Received/Paid totals), table with mode icons (§13.1).
-  - Dependencies: 6.1. Files: `src/features/payments/PaymentsPage.tsx`.
+- [x] ~~**Task 6.3** — Payments list page: summary cards, table with mode icons (§13.1).~~
+  - Files: `src/features/payments/PaymentsPage.tsx`.
+  - **Done, uncommitted.**
 
-- [ ] **Task 6.4** — Credit Accounts page (§14): aging calc (>30d overdue), 3 summary cards, `StatementDialog` with running balance, print-statement HTML window, `RecordPaymentDialog`.
-  - Acceptance: aging flag matches `moment().diff(invoice.created_date,'days') > 30`; statement running balance is cumulative debit−credit; print opens a formatted window matching §14.4.
-  - Verify: unit test for the aging calculation; manual check of statement print output.
-  - Dependencies: 6.2. Files: `src/features/credit-accounts/CreditAccountsPage.tsx`, `src/features/credit-accounts/StatementDialog.tsx`.
+- [x] ~~**Task 6.4** — Credit Accounts page (§14): aging calc, 3 summary cards, `StatementDialog`, print, receive payment.~~
+  - Files: `src/features/credit-accounts/{aging,CreditAccountsPage,StatementDialog}.ts(x)`.
+  - **Done, uncommitted** — 5/5 tests on the aging calculation. **Deviation from the plan's file list**: no separate `RecordPaymentDialog` — the "Receive" action reuses `LedgerDialog` directly instead of a second payment-form component, since it's the identical flow. Print statement implemented as a `window.open` HTML window per §14.4, reading company info from `settings` (Task 1.1's addition).
 
 ### Checkpoint — Payments & Credit
-- [ ] Every balance-affecting flow (sales, purchases, returns, manual payments) agrees with the ledger/statement view. Review before Phase 7.
+- [x] ~~Every balance-affecting flow (sales, purchases, returns, manual payments) agrees with the ledger/statement view.~~ Automated only — not manually cross-checked in the running app.
+- [ ] Review before Phase 7.
 
 ## Phase 7: Quotations
 
-- [ ] **Task 7.1** — Sequential QT-number generator + `Quotation` handler (create/get/list), reusing the sales line-item model.
-  - Dependencies: 1.1–1.3, 4.2 (reuse line-item component). Files: `electron/handlers/quotations.ts`.
+- [x] ~~**Task 7.1** — Sequential QT-number generator + `Quotation` handler (create/get/list).~~
+  - Files: `electron/handlers/quotations.ts`.
 
-- [ ] **Task 7.2** — New Quotation page (§15.2): customer/phone/remarks/valid-until, same line-item UX as sales, print preview.
-  - Dependencies: 7.1. Files: `src/features/quotations/NewQuotationPage.tsx`.
+- [x] ~~**Task 7.2** — New Quotation page (§15.2): customer/phone/remarks/valid-until, line-item UX, print preview.~~
+  - Files: `src/features/quotations/NewQuotationPage.tsx`.
 
-- [ ] **Task 7.3** — Quotations list + `ViewQuotationDialog` + print (§15.1, §15.4, §15.6).
-  - Dependencies: 7.2. Files: `src/features/quotations/QuotationsPage.tsx`, `src/features/quotations/ViewQuotationDialog.tsx`.
+- [x] ~~**Task 7.3** — Quotations list + `ViewQuotationDialog` + print (§15.1, §15.4, §15.6).~~
+  - Files: `src/features/quotations/QuotationsPage.tsx`, `src/features/quotations/ViewQuotationDialog.tsx`.
 
-- [ ] **Task 7.4** — Convert-to-invoice: **fix the known gap** (§26.2 #1–2) — properly pass quotation data into New Sale, set `quotation_id` on the resulting invoice, and update quotation status to `converted` (the old app silently failed to do all three).
-  - Acceptance: converting a quotation creates an invoice referencing it and flips the quotation's status — verified by an explicit regression test, since this exact bug existed in the app we're replacing.
-  - Verify: vitest end-to-end (quotation → convert → invoice.quotation_id set, quotation.status === 'converted').
-  - Dependencies: 4.3, 7.3.
-  - Files: `electron/handlers/quotations.ts`, `src/features/sales/NewSalePage.tsx`.
+- [x] ~~**Task 7.4** — Convert-to-invoice: fix the known gap (§26.2 #1–2).~~
+  - Files: `electron/handlers/quotations.ts`, `electron/handlers/sales.ts`, `src/features/sales/NewSalePage.tsx`.
+  - **Done, uncommitted** — the fix lives in `sales.create()`: when a `quotationId` is present, linking the invoice and flipping the quotation to `converted` (+ rejecting a second conversion) happens inside the **same transaction** as the invoice insert, so it's structurally impossible to get one without the other — exactly the failure mode that broke the legacy app. Regression test in `quotations.test.ts` asserts all three effects together. `ViewQuotationDialog`'s "Convert to Sale Invoice" navigates to `/sales/new` with the quotation in router state; `NewSalePage` pre-fills the cart from it and passes `quotationId` back on submit.
 
 ### Checkpoint — Quotations
-- [ ] Quotation → invoice conversion verified correct (this was broken in the legacy app). Review before Phase 8.
+- [x] ~~Quotation → invoice conversion verified correct (this was broken in the legacy app).~~ — verified by the regression test above; 6/6 quotation tests + 12/12 sales tests (unaffected) still passing. **Not manually clicked through** the actual convert-and-submit flow in the running app.
+- [ ] Review before Phase 8.
 
 ## Phase 8: Daily Expenses
 
-- [ ] **Task 8.1** — `Expense` handler + predefined expense-head list (§16.2).
-- [ ] **Task 8.2** — Expenses page: CRUD dialog, month filter (`YYYY-MM`), summary cards (month total + top-3 heads by %).
-  - Acceptance: month filter and top-3 aggregation match §16.1/§16.3 exactly.
-  - Dependencies: 8.1. Files: `electron/handlers/expenses.ts`, `src/features/expenses/ExpensesPage.tsx`.
+- [x] ~~**Task 8.1** — `Expense` handler + predefined expense-head list (§16.2).~~
+- [x] ~~**Task 8.2** — Expenses page: CRUD dialog, month filter (`YYYY-MM`), summary cards (month total + top-3 heads by %).~~
+  - Files: `electron/handlers/expenses.ts`, `src/features/expenses/ExpensesPage.tsx`.
+  - **Done, uncommitted** — 9/9 tests.
 
 ### Checkpoint — Expenses
-- [ ] Expense CRUD + filtering verified. Review before Phase 9.
+- [x] ~~Expense CRUD + filtering verified.~~ Automated only.
+- [ ] Review before Phase 9.
+
+---
+
+**Summary of this Phase 3–8 push**: 21 test files, 141 tests, `tsc --noEmit` clean, both `vite build` and `build-electron.js` succeed throughout — checked at every phase boundary, not just once at the end. Nothing committed (per your instruction); everything is sitting in the working tree for your review.
+
+**What's genuinely unverified**: every page built in this push (Stock, Sales, Purchases, Payments, Credit Accounts, Quotations, Expenses) has automated coverage only — none has been clicked through in a running `npm run dev` session. Phase 1's manual check caught a real bug (the stale pre-reset database) that no test could have caught; the same class of risk applies here, especially for **New Sale** (the PRD's highest-priority screen) and the **quotation-conversion flow** (the exact bug class the legacy app shipped with). Strongly recommend running the app and walking through at least: create a product → adjust stock → make a sale (cash and credit) → return part of it → record a purchase → receive a payment → create and convert a quotation → log an expense — before treating this as done.
 
 ## Phase 9: Reports & Analytics
 
