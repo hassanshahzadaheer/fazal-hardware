@@ -205,104 +205,106 @@ export default function NewSalePage() {
 
         <div className="bg-surface border border-border rounded-md overflow-hidden">
           <h2 className="font-semibold text-ink px-5 pt-4 pb-2">2. Review Items</h2>
-          <table className="w-full text-sm">
-            <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
-              <tr>
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide">Product</th>
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Qty</th>
-                {dimensional && (
-                  <>
-                    <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">L</th>
-                    <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">W</th>
-                  </>
-                )}
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Price</th>
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">
-                  <Tooltip content="Discount applied to this line only, before the order-level discount below">
-                    <span>Disc%</span>
-                  </Tooltip>
-                </th>
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Total</th>
-                <th className="px-4 py-2 w-10" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {lines.map((l) => (
-                <tr key={l._key} className="hover:bg-surface-sunken/60 transition-colors">
-                  <td className="px-4 py-2 text-ink">{l.productName}</td>
-                  <td className="px-2 py-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={l.quantity}
-                      onChange={(e) => updateLine(l._key, { quantity: Number(e.target.value) })}
-                      className="w-20"
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
+                <tr>
+                  <th className="px-3 py-2 font-medium text-[12px] uppercase tracking-wide">Product</th>
+                  <th className="px-1.5 py-2 font-medium text-[12px] uppercase tracking-wide w-16">Qty</th>
                   {dimensional && (
                     <>
-                      <td className="px-2 py-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={l.length ?? ''}
-                          onChange={(e) => updateLine(l._key, { length: e.target.value ? Number(e.target.value) : null })}
-                          className="w-20"
-                        />
-                      </td>
-                      <td className="px-2 py-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={l.width ?? ''}
-                          onChange={(e) => updateLine(l._key, { width: e.target.value ? Number(e.target.value) : null })}
-                          className="w-20"
-                        />
-                      </td>
+                      <th className="px-1.5 py-2 font-medium text-[12px] uppercase tracking-wide w-14">L</th>
+                      <th className="px-1.5 py-2 font-medium text-[12px] uppercase tracking-wide w-14">W</th>
                     </>
                   )}
-                  <td className="px-2 py-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={l.unitPrice}
-                      onChange={(e) => updateLine(l._key, { unitPrice: Number(e.target.value) })}
-                      className="w-28"
-                    />
-                  </td>
-                  <td className="px-2 py-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={l.discountPercent ?? 0}
-                      onChange={(e) => updateLine(l._key, { discountPercent: Number(e.target.value) })}
-                      className="w-20"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-ink font-medium">{formatPKR(l.lineTotal)}</td>
-                  <td className="px-2 py-2">
-                    <Tooltip content="Remove this item from the sale">
-                      <button
-                        onClick={() => removeLine(l._key)}
-                        aria-label={`Remove ${l.productName}`}
-                        className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  <th className="px-1.5 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Price</th>
+                  <th className="px-1.5 py-2 font-medium text-[12px] uppercase tracking-wide w-16">
+                    <Tooltip content="Discount applied to this line only, before the order-level discount below">
+                      <span>Disc%</span>
                     </Tooltip>
-                  </td>
+                  </th>
+                  <th className="px-2 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Total</th>
+                  <th className="px-1 py-2 w-8" />
                 </tr>
-              ))}
-              {lines.length === 0 && (
-                <tr>
-                  <td colSpan={dimensional ? 8 : 6} className="px-4 py-8 text-center text-ink-muted">
-                    Search and add products above.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {lines.map((l) => (
+                  <tr key={l._key} className="hover:bg-surface-sunken/60 transition-colors">
+                    <td className="px-3 py-1.5 text-ink">{l.productName}</td>
+                    <td className="px-1.5 py-1.5">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={l.quantity}
+                        onChange={(e) => updateLine(l._key, { quantity: Number(e.target.value) })}
+                        className="w-16 px-2"
+                      />
+                    </td>
+                    {dimensional && (
+                      <>
+                        <td className="px-1.5 py-1.5">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={l.length ?? ''}
+                            onChange={(e) => updateLine(l._key, { length: e.target.value ? Number(e.target.value) : null })}
+                            className="w-14 px-1.5"
+                          />
+                        </td>
+                        <td className="px-1.5 py-1.5">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={l.width ?? ''}
+                            onChange={(e) => updateLine(l._key, { width: e.target.value ? Number(e.target.value) : null })}
+                            className="w-14 px-1.5"
+                          />
+                        </td>
+                      </>
+                    )}
+                    <td className="px-1.5 py-1.5">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={l.unitPrice}
+                        onChange={(e) => updateLine(l._key, { unitPrice: Number(e.target.value) })}
+                        className="w-20 px-2"
+                      />
+                    </td>
+                    <td className="px-1.5 py-1.5">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={l.discountPercent ?? 0}
+                        onChange={(e) => updateLine(l._key, { discountPercent: Number(e.target.value) })}
+                        className="w-16 px-2"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5 text-ink font-medium">{formatPKR(l.lineTotal)}</td>
+                    <td className="px-1 py-1.5">
+                      <Tooltip content="Remove this item from the sale">
+                        <button
+                          onClick={() => removeLine(l._key)}
+                          aria-label={`Remove ${l.productName}`}
+                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
+                    </td>
+                  </tr>
+                ))}
+                {lines.length === 0 && (
+                  <tr>
+                    <td colSpan={dimensional ? 8 : 6} className="px-4 py-8 text-center text-ink-muted">
+                      Search and add products above.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -312,7 +314,7 @@ export default function NewSalePage() {
 
           <Field label="Customer (optional)">
             <Select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-              <option value="">Walk-in</option>
+              <option value="">Walk-in customer</option>
               {(customers ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}

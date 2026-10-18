@@ -189,7 +189,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
             <div className="grid grid-cols-2 gap-4">
               <Field label="Category">
                 <Select value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-                  <option value="">—</option>
+                  <option value="">Select category</option>
                   {(categories ?? []).map((c: any) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -199,7 +199,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               </Field>
               <Field label="Brand">
                 <Select value={form.brandId} onChange={(e) => set('brandId', e.target.value)}>
-                  <option value="">—</option>
+                  <option value="">Select brand</option>
                   {(brands ?? []).map((b: any) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
@@ -220,7 +220,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
             <div className="grid grid-cols-2 gap-4">
               <Field label="Selling Unit" required>
                 <Select required value={form.baseUnit} onChange={(e) => set('baseUnit', e.target.value)}>
-                  <option value="">—</option>
+                  <option value="">Select unit</option>
                   {BASE_UNITS.map((u) => (
                     <option key={u} value={u}>
                       {u}

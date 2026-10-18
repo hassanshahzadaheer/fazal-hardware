@@ -56,12 +56,20 @@ if (!isPrimaryInstance) {
   });
 }
 
+// Packaged builds get their icon from electron-builder's "build.icon" config
+// (build/icon.png) baked into the app bundle/installer. In dev there's no
+// bundle — the window/taskbar/dock icon otherwise falls back to Electron's
+// own icon — so we point both the window and the macOS dock at the same
+// source image explicitly.
+const appIconPath = path.join(__dirname, '../build/icon.png');
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 768,
+    icon: appIconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -86,6 +94,9 @@ function createWindow() {
 
 app.on('ready', () => {
   try {
+    if (process.platform === 'darwin' && app.dock) {
+      app.dock.setIcon(appIconPath);
+    }
     initDb();
     createWindow();
   } catch (err) {

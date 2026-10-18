@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Eye, PackageOpen } from 'lucide-react';
 import { PurchaseOrder } from '../../../shared/types';
 import PurchaseDetailDialog from './PurchaseDetailDialog';
-import { Badge, Button, EmptyState, Input, Tooltip } from '../../components/ui';
+import { Badge, Button, EmptyState, PageHeader, Toolbar, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -42,34 +42,26 @@ export default function PurchasesPage() {
 
   return (
     <div className="p-8 max-w-[1400px]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Purchases</h1>
-            <Badge tone="accent">{pos?.length ?? 0}</Badge>
-          </div>
-          <p className="text-[13px] text-ink-muted mt-0.5">
-            {filtered.length} result{filtered.length === 1 ? '' : 's'} — total spend {formatPKR(totalSpend)}
-          </p>
-        </div>
-        <Link
-          to="/purchases/new"
-          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 ease-standard bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-xs px-4 py-2 text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          New Purchase
-        </Link>
-      </div>
-
-      <div className="relative w-full max-w-md mb-4">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by PO number or supplier…"
-        />
-      </div>
+      <PageHeader
+        title="Purchases"
+        count={pos?.length ?? 0}
+        subtitle={`${filtered.length} result${filtered.length === 1 ? '' : 's'} — total spend ${formatPKR(totalSpend)}`}
+      />
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by PO number or supplier…"
+          action={
+            <Link to="/purchases/new">
+              <Button variant="primary">
+                <Plus className="w-4 h-4" />
+                New Purchase
+              </Button>
+            </Link>
+          }
+        />
         {isLoading ? (
           <TableSkeleton cols={6} />
         ) : filtered.length === 0 ? (

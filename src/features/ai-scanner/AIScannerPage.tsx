@@ -249,7 +249,7 @@ export default function AIScannerPage() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Supplier">
               <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
-                <option value="">—</option>
+                <option value="">Select supplier</option>
                 {(suppliers ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -294,7 +294,7 @@ export default function AIScannerPage() {
                           value={it.productId ?? ''}
                           onChange={(e) => updateItem(i, { productId: e.target.value ? Number(e.target.value) : null })}
                         >
-                          <option value="">— Unmatched —</option>
+                          <option value="">Unmatched — select a product</option>
                           {(products ?? []).map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name}

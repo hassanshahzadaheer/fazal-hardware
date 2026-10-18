@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Eye, RotateCcw, Search, Receipt } from 'lucide-react';
+import { Plus, Eye, RotateCcw, Receipt } from 'lucide-react';
 import { SaleInvoice } from '../../../shared/types';
 import SaleDetailDialog from './SaleDetailDialog';
 import SaleReturnDialog from './SaleReturnDialog';
-import { Input, Badge, EmptyState, Tooltip } from '../../components/ui';
+import { Badge, EmptyState, Tooltip, PageHeader, Toolbar } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -60,36 +60,27 @@ export default function SalesPage() {
 
   return (
     <div className="p-8 max-w-[1400px]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Sales</h1>
-            <Badge tone="accent">{invoices?.length ?? 0}</Badge>
-          </div>
-          <p className="text-[13px] text-ink-muted mt-0.5">
-            {filtered.length} result{filtered.length === 1 ? '' : 's'} — total {formatPKR(totalRevenue)}
-          </p>
-        </div>
-        <Link
-          to="/sales/new"
-          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 ease-standard bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-xs px-4 py-2 text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          New Sale
-        </Link>
-      </div>
-
-      <div className="relative w-full max-w-sm mb-4">
-        <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by invoice number or customer…"
-          className="pl-9"
-        />
-      </div>
+      <PageHeader
+        title="Sales"
+        count={invoices?.length ?? 0}
+        subtitle={`${filtered.length} result${filtered.length === 1 ? '' : 's'} — total ${formatPKR(totalRevenue)}`}
+      />
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by invoice number or customer…"
+          action={
+            <Link
+              to="/sales/new"
+              className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 ease-standard bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-xs px-4 py-2 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              New Sale
+            </Link>
+          }
+        />
         {isLoading ? (
           <TableSkeleton cols={7} />
         ) : filtered.length === 0 ? (

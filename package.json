@@ -65,6 +65,7 @@
   "build": {
     "appId": "com.fazal.pos",
     "productName": "Fazal POS & Inventory",
+    "icon": "build/icon.png",
     "directories": {
       "output": "release"
     },

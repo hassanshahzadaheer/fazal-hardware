@@ -4,7 +4,7 @@ import { AlertTriangle, SlidersHorizontal, Clock, PackageSearch } from 'lucide-r
 import { ProductWithNames } from '../../../shared/types';
 import StockAdjustDialog from './StockAdjustDialog';
 import StockHistoryDialog from './StockHistoryDialog';
-import { Badge, EmptyState, Input, Tooltip } from '../../components/ui';
+import { Badge, EmptyState, PageHeader, Toolbar, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -54,36 +54,30 @@ export default function StockPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-0.5">
-        <h1 className="text-[22px] font-semibold text-ink tracking-tight">Stock Management</h1>
+      <PageHeader title="Stock Management" subtitle={`Total inventory value: ${formatPKR(totalValue)}`}>
         {lowStockCount > 0 && <Badge tone="danger">{lowStockCount} low stock</Badge>}
-      </div>
-      <p className="text-[13px] text-ink-muted mt-0.5 mb-4">Total inventory value: {formatPKR(totalValue)}</p>
+      </PageHeader>
 
-      <div className="flex items-center gap-4 mb-4">
-        <div className="flex gap-1 border-b border-border">
-          {(['all', 'low'] as const).map((key) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === key ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink'
-              }`}
-            >
-              {key === 'all' ? 'All Stock' : 'Low Stock'}
-            </button>
-          ))}
-        </div>
-        <div className="relative flex-1 max-w-sm">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, category, or brand…"
-          />
-        </div>
+      <div className="flex gap-1 border-b border-border mb-4">
+        {(['all', 'low'] as const).map((key) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === key ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink'
+            }`}
+          >
+            {key === 'all' ? 'All Stock' : 'Low Stock'}
+          </button>
+        ))}
       </div>
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by name, category, or brand…"
+        />
         {isLoading ? (
           <TableSkeleton cols={6} />
         ) : filtered.length === 0 ? (

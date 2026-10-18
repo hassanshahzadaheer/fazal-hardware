@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, TrendingDown } from 'lucide-react';
 import { Expense } from '../../../shared/types';
 import { EXPENSE_HEADS, EXPENSE_PAYMENT_MODES } from '../../../shared/constants';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, Select, Tooltip } from '../../components/ui';
+import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, PageHeader, Select, Toolbar, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -92,16 +92,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-[22px] font-semibold text-ink tracking-tight">Daily Expenses</h1>
-          <p className="text-[13px] text-ink-muted mt-0.5">Track cash outflows by head, mode, and reference.</p>
-        </div>
-        <Button variant="primary" onClick={openCreate}>
-          <Plus className="w-4 h-4" />
-          Add Expense
-        </Button>
-      </div>
+      <PageHeader title="Daily Expenses" subtitle="Track cash outflows by head, mode, and reference." />
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-surface border border-border rounded-md p-4">
@@ -117,23 +108,26 @@ export default function ExpensesPage() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by head, description, or reference…"
-          />
-        </div>
-        <Input
-          type="month"
-          value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
-          className="w-auto"
-        />
-      </div>
-
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by head, description, or reference…"
+          filters={
+            <Input
+              type="month"
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="w-auto"
+            />
+          }
+          action={
+            <Button variant="primary" onClick={openCreate}>
+              <Plus className="w-4 h-4" />
+              Add Expense
+            </Button>
+          }
+        />
         {isLoading ? (
           <TableSkeleton cols={7} />
         ) : filtered.length === 0 ? (

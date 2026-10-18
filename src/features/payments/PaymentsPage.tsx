@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowUpRight, CreditCard } from 'lucide-react';
 import { Payment } from '../../../shared/types';
-import { Badge, EmptyState, Input } from '../../components/ui';
+import { Badge, EmptyState, PageHeader, Toolbar } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -49,10 +49,7 @@ export default function PaymentsPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center gap-2.5 mb-6">
-        <h1 className="text-[22px] font-semibold text-ink tracking-tight">Payments</h1>
-        <Badge tone="accent">{payments?.length ?? 0}</Badge>
-      </div>
+      <PageHeader title="Payments" count={payments?.length ?? 0} />
 
       <div className="grid grid-cols-2 gap-4 mb-6 max-w-xl">
         <div className="bg-surface border border-border rounded-md p-4 flex items-center gap-3">
@@ -75,15 +72,12 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      <div className="relative w-full max-w-md mb-4">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by party name or payment mode…"
-        />
-      </div>
-
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by party name or payment mode…"
+        />
         {isLoading ? (
           <TableSkeleton cols={6} />
         ) : filtered.length === 0 ? (

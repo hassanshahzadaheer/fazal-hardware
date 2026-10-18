@@ -164,29 +164,29 @@ export default function NewPurchasePage() {
           <table className="w-full text-sm">
             <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
               <tr>
-                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Product</th>
-                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide w-28">Quantity</th>
-                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide w-28">Rate</th>
-                <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide w-28">Total</th>
-                <th className="px-4 py-2.5 w-10" />
+                <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide">Product</th>
+                <th className="px-2 py-2.5 font-medium text-[12px] uppercase tracking-wide w-16">Qty</th>
+                <th className="px-2 py-2.5 font-medium text-[12px] uppercase tracking-wide w-20">Rate</th>
+                <th className="px-3 py-2.5 font-medium text-[12px] uppercase tracking-wide w-24">Total</th>
+                <th className="px-2 py-2.5 w-8" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {lines.map((l) => (
                 <tr key={l._key} className="hover:bg-surface-sunken/60 transition-colors">
-                  <td className="px-4 py-2.5 text-ink">
+                  <td className="px-3 py-2 text-ink">
                     {l.productName} <span className="text-xs text-ink-muted">({l.unit})</span>
                   </td>
-                  <td className="px-2 py-2">
+                  <td className="px-1 py-1.5">
                     <Input
                       type="number"
                       min="0"
                       value={l.quantity}
                       onChange={(e) => updateLine(l._key, { quantity: Number(e.target.value) })}
-                      className="w-20"
+                      className="w-16"
                     />
                   </td>
-                  <td className="px-2 py-2">
+                  <td className="px-1 py-1.5">
                     <Input
                       type="number"
                       min="0"
@@ -195,8 +195,8 @@ export default function NewPurchasePage() {
                       className="w-20"
                     />
                   </td>
-                  <td className="px-4 py-2.5 text-ink font-medium tabular-nums">{formatPKR(l.lineTotal)}</td>
-                  <td className="px-2 py-2">
+                  <td className="px-3 py-2 text-ink font-medium tabular-nums whitespace-nowrap">{formatPKR(l.lineTotal)}</td>
+                  <td className="px-1 py-1.5">
                     <Tooltip content="Remove this item from the purchase">
                       <button
                         onClick={() => removeLine(l._key)}
@@ -227,7 +227,7 @@ export default function NewPurchasePage() {
 
           <Field label="Supplier (optional)">
             <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
-              <option value="">—</option>
+              <option value="">Select supplier</option>
               {(suppliers ?? []).map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}

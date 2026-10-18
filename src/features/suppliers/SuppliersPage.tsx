@@ -1,10 +1,10 @@
 import { useMemo, useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, BookOpenText, Truck, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, BookOpenText, Truck } from 'lucide-react';
 import { Supplier } from '../../../shared/types';
 import LedgerDialog from '../ledger/LedgerDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Field, Modal, Badge, EmptyState, Tooltip, confirmDialog } from '../../components/ui';
+import { Button, Input, Field, Modal, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -77,31 +77,24 @@ export default function SuppliersPage() {
 
   return (
     <div className="p-8 max-w-[1400px]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Suppliers</h1>
-            <Badge tone="accent">{suppliers?.length ?? 0}</Badge>
-          </div>
-          <p className="text-[13px] text-ink-muted mt-0.5">Total payable: {formatPKR(totalPayable)}</p>
-        </div>
-        <Button variant="primary" onClick={openCreate}>
-          <Plus className="w-4 h-4" />
-          Add Supplier
-        </Button>
-      </div>
-
-      <div className="relative w-full max-w-sm mb-4">
-        <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or phone…"
-          className="pl-9"
-        />
-      </div>
+      <PageHeader
+        title="Suppliers"
+        count={suppliers?.length ?? 0}
+        subtitle={`Total payable: ${formatPKR(totalPayable)}`}
+      />
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by name or phone…"
+          action={
+            <Button variant="primary" onClick={openCreate}>
+              <Plus className="w-4 h-4" />
+              Add Supplier
+            </Button>
+          }
+        />
         {isLoading ? (
           <TableSkeleton cols={4} />
         ) : filtered.length === 0 ? (

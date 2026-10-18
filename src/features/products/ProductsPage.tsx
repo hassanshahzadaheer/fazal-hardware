@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, AlertTriangle, Search, PackageSearch } from 'lucide-react';
+import { Plus, Pencil, Trash2, AlertTriangle, PackageSearch } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
 import ProductFormDialog from './ProductFormDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Badge, EmptyState, Tooltip, confirmDialog } from '../../components/ui';
+import { Button, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number | null): string {
@@ -83,31 +83,24 @@ export default function ProductsPage() {
 
   return (
     <div className="p-8 max-w-[1400px]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Products</h1>
-            <Badge tone="accent">{products?.length ?? 0}</Badge>
-          </div>
-          <p className="text-[13px] text-ink-muted mt-0.5">Catalog, pricing, and stock levels for every item you sell.</p>
-        </div>
-        <Button variant="primary" onClick={openCreate}>
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Button>
-      </div>
-
-      <div className="relative w-full max-w-sm mb-4">
-        <Search className="w-4 h-4 text-ink-faint absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, category, brand, barcode, or location…"
-          className="pl-9"
-        />
-      </div>
+      <PageHeader
+        title="Products"
+        count={products?.length ?? 0}
+        subtitle="Catalog, pricing, and stock levels for every item you sell."
+      />
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by name, category, brand, barcode, or location…"
+          action={
+            <Button variant="primary" onClick={openCreate}>
+              <Plus className="w-4 h-4" />
+              Add Product
+            </Button>
+          }
+        />
         {isLoading ? (
           <TableSkeleton cols={8} />
         ) : filtered.length === 0 ? (

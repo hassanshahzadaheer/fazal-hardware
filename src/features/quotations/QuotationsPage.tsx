@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Eye, FileText } from 'lucide-react';
 import { Quotation } from '../../../shared/types';
 import ViewQuotationDialog from './ViewQuotationDialog';
-import { Input, Badge, EmptyState, Tooltip } from '../../components/ui';
+import { Badge, EmptyState, Tooltip, PageHeader, Toolbar } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -44,34 +44,27 @@ export default function QuotationsPage() {
 
   return (
     <div className="p-8 max-w-[1400px]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold text-ink tracking-tight">Quotations</h1>
-            <Badge tone="accent">{quotations?.length ?? 0}</Badge>
-          </div>
-          <p className="text-[13px] text-ink-muted mt-0.5">
-            {filtered.length} quote{filtered.length === 1 ? '' : 's'} — total value {formatPKR(totalValue)}
-          </p>
-        </div>
-        <Link
-          to="/quotations/new"
-          className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 ease-standard bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-xs px-4 py-2 text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          New Quotation
-        </Link>
-      </div>
-
-      <div className="relative w-full max-w-sm mb-4">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by quote #, customer, or remarks…"
-        />
-      </div>
+      <PageHeader
+        title="Quotations"
+        count={quotations?.length ?? 0}
+        subtitle={`${filtered.length} quote${filtered.length === 1 ? '' : 's'} — total value ${formatPKR(totalValue)}`}
+      />
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
+        <Toolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by quote #, customer, or remarks…"
+          action={
+            <Link
+              to="/quotations/new"
+              className="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 ease-standard bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-xs px-4 py-2 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              New Quotation
+            </Link>
+          }
+        />
         {isLoading ? (
           <TableSkeleton cols={6} />
         ) : filtered.length === 0 ? (
