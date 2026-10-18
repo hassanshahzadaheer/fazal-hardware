@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
 import log from 'electron-log';
+import { ensureDefaultAdmin } from '../handlers/auth';
 
 let db: Database.Database | null = null;
 
@@ -36,6 +37,9 @@ export function initDb(customPath?: string): Database.Database {
 
   // Run migrations
   runMigrations(activeDb);
+
+  // First-run convenience: seed one admin user if the table is empty (Task 1.3).
+  ensureDefaultAdmin(activeDb);
 
   if (!customPath) {
     db = activeDb;

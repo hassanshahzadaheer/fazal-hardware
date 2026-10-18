@@ -19,4 +19,10 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  test: {
+    // better-sqlite3's native binding segfaults when multiple test files load it
+    // inside vitest's default worker-thread pool (shared memory across threads).
+    // Running each test file in its own process avoids it.
+    pool: 'forks',
+  },
 });

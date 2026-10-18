@@ -1,9 +1,35 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from './stores/authStore';
+import LoginPage from './features/auth/LoginPage';
 
 const queryClient = new QueryClient();
 
-function Placeholder() {
+function Spinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
+      <div className="w-8 h-8 border-4 border-[#1F6B3B]/30 border-t-[#1F6B3B] rounded-full animate-spin" />
+    </div>
+  );
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuthStore();
+  if (loading) return <Spinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function RequireGuest({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuthStore();
+  if (loading) return <Spinner />;
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function HomePlaceholder() {
+  const { user, logout } = useAuthStore();
   const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -13,14 +39,53 @@ function Placeholder() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA] font-sans">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F8FA] font-sans gap-4">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-[#111827]">Fazal Hardware</h1>
         <p className="text-sm text-[#6B7280] mt-2">
-          Boilerplate ready{version ? ` — v${version}` : ''}. Build modules per docs/Fazal_Hardware_PRD.md.
+          Signed in as {user?.email}{version ? ` — v${version}` : ''}. Modules land per
+          docs/IMPLEMENTATION_PLAN.md.
         </p>
       </div>
+      <button
+        onClick={() => logout()}
+        className="text-sm text-rose-600 hover:text-rose-700 font-medium"
+      >
+        Sign out
+      </button>
     </div>
+  );
+}
+
+function MainAppContent() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <RequireGuest>
+              <LoginPage />
+            </RequireGuest>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <HomePlaceholder />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
@@ -55,7 +120,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Placeholder />
+      <MainAppContent />
     </QueryClientProvider>
   );
 }
