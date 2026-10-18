@@ -38,6 +38,10 @@ export function initDb(customPath?: string): Database.Database {
   // Run migrations
   runMigrations(activeDb);
 
+  // Fail fast and clearly if this file predates the Phase 0 schema reset, instead
+  // of letting a cryptic "no such column" surface deep inside some later query.
+  assertCompatibleSchema(activeDb, dbPath);
+
   // First-run convenience: seed one admin user if the table is empty (Task 1.3).
   ensureDefaultAdmin(activeDb);
 
@@ -68,6 +72,33 @@ export function resolveMigrationsDir(candidates = getMigrationDirCandidates()): 
     throw new Error(`Database migrations directory not found. Checked: ${candidates.join(', ')}`);
   }
   return migrationsDir;
+}
+
+// Migration version numbers restarted from 1 during the Phase 0 schema reset
+// (docs/IMPLEMENTATION_PLAN.md), which is intentionally incompatible with
+// whatever came before. If an existing DB file already has migration history
+// but lacks a marker column from the new schema, the migration runner above
+// silently skips re-applying "already applied" versions — so catch that case
+// explicitly here rather than letting it surface as a cryptic SQL error later.
+function assertCompatibleSchema(activeDb: Database.Database, dbPath: string): void {
+  const hasMigrationHistory = activeDb.prepare('SELECT 1 FROM schema_migrations LIMIT 1').get();
+  if (!hasMigrationHistory) return; // brand-new DB, nothing to check
+
+  const usersTableExists = activeDb
+    .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'")
+    .get();
+  const columns = usersTableExists
+    ? (activeDb.prepare('PRAGMA table_info(users)').all() as { name: string }[]).map((c) => c.name)
+    : [];
+
+  if (!columns.includes('email')) {
+    throw new Error(
+      `Incompatible database at ${dbPath}: this file has migration history recorded but no ` +
+        `'users.email' column, so it predates the Phase 0 schema reset and cannot be auto-migrated. ` +
+        `Delete or move this file aside and relaunch to start with a fresh database — no historical ` +
+        `data migration from the old schema is planned (see docs/IMPLEMENTATION_PLAN.md).`
+    );
+  }
 }
 
 function getMigrationDirCandidates(): string[] {
