@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SaleInvoice } from '../../../shared/types';
-import { Modal, Field, Input, Textarea, Button } from '../../components/ui';
+import { Modal, Field, Input, Textarea, Button, Banner } from '../../components/ui';
 
 export default function SaleReturnDialog({
   invoice,
@@ -57,6 +57,10 @@ export default function SaleReturnDialog({
       }
     >
       <div className="space-y-4">
+        <Banner tone="warning">
+          Returning items will restock the quantity returned, mark this invoice as returned, and reduce the
+          linked customer's outstanding balance by the return value.
+        </Banner>
         {error && (
           <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
             {error}
@@ -95,7 +99,12 @@ export default function SaleReturnDialog({
         </div>
 
         <Field label="Notes">
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="e.g. Wrong size delivered, customer changed mind"
+          />
         </Field>
       </div>
     </Modal>

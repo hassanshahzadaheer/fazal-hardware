@@ -178,7 +178,12 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
         {tab === 'details' && (
           <>
             <Field label="Name" required>
-              <Input required value={form.name} onChange={(e) => set('name', e.target.value)} />
+              <Input
+                required
+                value={form.name}
+                onChange={(e) => set('name', e.target.value)}
+                placeholder="e.g. PVC Pipe 4 inch"
+              />
             </Field>
 
             <div className="grid grid-cols-2 gap-4">
@@ -205,7 +210,11 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
             </div>
 
             <Field label="Variant Details" hint='e.g. "thickness:18mm, grade:Commercial"'>
-              <Input value={form.variantText} onChange={(e) => set('variantText', e.target.value)} />
+              <Input
+                value={form.variantText}
+                onChange={(e) => set('variantText', e.target.value)}
+                placeholder="e.g. thickness:18mm, grade:Commercial"
+              />
             </Field>
 
             <div className="grid grid-cols-2 gap-4">
@@ -220,17 +229,25 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
                 </Select>
               </Field>
               <Field label="Purchase Unit">
-                <Input value={form.purchaseUnit} onChange={(e) => set('purchaseUnit', e.target.value)} />
+                <Input
+                  value={form.purchaseUnit}
+                  onChange={(e) => set('purchaseUnit', e.target.value)}
+                  placeholder="e.g. box, bundle, carton"
+                />
               </Field>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Items Per Purchase Unit">
+              <Field
+                label="Items Per Purchase Unit"
+                hint="How many selling units make up one purchase unit — e.g. 1 box = 144 pieces, so enter 144."
+              >
                 <Input
                   type="number"
                   min="0"
                   value={form.purchaseUnitFactor}
                   onChange={(e) => set('purchaseUnitFactor', e.target.value)}
+                  placeholder="e.g. 144"
                 />
               </Field>
               <Field label="Low Stock Alert Level">
@@ -239,6 +256,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
                   min="0"
                   value={form.reorderLevel}
                   onChange={(e) => set('reorderLevel', e.target.value)}
+                  placeholder="e.g. 10"
                 />
               </Field>
             </div>
@@ -250,6 +268,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
                   min="0"
                   value={form.retailPrice}
                   onChange={(e) => set('retailPrice', e.target.value)}
+                  placeholder="e.g. 450"
                 />
               </Field>
               <Field label="Wholesale Price (PKR)">
@@ -258,6 +277,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
                   min="0"
                   value={form.wholesalePrice}
                   onChange={(e) => set('wholesalePrice', e.target.value)}
+                  placeholder="e.g. 400"
                 />
               </Field>
               <Field label="Cost Price (PKR)">
@@ -266,19 +286,29 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
                   min="0"
                   value={form.costPrice}
                   onChange={(e) => set('costPrice', e.target.value)}
+                  placeholder="e.g. 350"
                 />
               </Field>
             </div>
 
             <Field label="Shelf/Rack Location">
-              <Input value={form.rackLocation} onChange={(e) => set('rackLocation', e.target.value)} />
+              <Input
+                value={form.rackLocation}
+                onChange={(e) => set('rackLocation', e.target.value)}
+                placeholder="e.g. Aisle 3, Shelf B"
+              />
             </Field>
           </>
         )}
 
         {tab === 'barcode' && (
           <Field label="Barcode" hint="Manual entry for now — camera scanning lands later.">
-            <Input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} autoFocus />
+            <Input
+              value={form.barcode}
+              onChange={(e) => set('barcode', e.target.value)}
+              placeholder="Scan or type the barcode"
+              autoFocus
+            />
           </Field>
         )}
       </form>

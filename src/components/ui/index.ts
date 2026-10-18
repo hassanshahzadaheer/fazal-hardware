@@ -6,3 +6,5 @@ export { ConfirmDialogProvider, confirmDialog } from './ConfirmDialog';
 export { default as Badge } from './Badge';
 export { default as EmptyState } from './EmptyState';
 export { default as Skeleton, TableSkeleton } from './Skeleton';
+export { default as Tooltip } from './Tooltip';
+export { default as Banner } from './Banner';

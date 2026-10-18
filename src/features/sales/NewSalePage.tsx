@@ -5,7 +5,7 @@ import { Trash2, Search } from 'lucide-react';
 import { ProductWithNames, Customer, LineItem, Quotation } from '../../../shared/types';
 import { calcLineTotal } from './lineTotal';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Field, Input, Select, Button } from '../../components/ui';
+import { Field, Input, Select, Button, Tooltip, Banner } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -217,7 +217,11 @@ export default function NewSalePage() {
                   </>
                 )}
                 <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Price</th>
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Disc%</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">
+                  <Tooltip content="Discount applied to this line only, before the order-level discount below">
+                    <span>Disc%</span>
+                  </Tooltip>
+                </th>
                 <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Total</th>
                 <th className="px-4 py-2 w-10" />
               </tr>
@@ -278,13 +282,15 @@ export default function NewSalePage() {
                   </td>
                   <td className="px-4 py-2 text-ink font-medium">{formatPKR(l.lineTotal)}</td>
                   <td className="px-2 py-2">
-                    <button
-                      onClick={() => removeLine(l._key)}
-                      aria-label={`Remove ${l.productName}`}
-                      className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <Tooltip content="Remove this item from the sale">
+                      <button
+                        onClick={() => removeLine(l._key)}
+                        aria-label={`Remove ${l.productName}`}
+                        className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
                   </td>
                 </tr>
               ))}
@@ -315,7 +321,7 @@ export default function NewSalePage() {
             </Select>
           </Field>
 
-          <Field label="Price Type">
+          <Field label="Price Type" hint="Wholesale price applies only to items added after switching">
             <Select value={priceTier} onChange={(e) => setPriceTier(e.target.value as PriceTier)}>
               <option value="retail">Retail</option>
               <option value="wholesale">Wholesale</option>
@@ -331,11 +337,19 @@ export default function NewSalePage() {
             </Select>
           </Field>
 
+          {(paymentMode === 'credit' || paymentMode === 'partial') && !customerId && (
+            <Banner tone="warning">
+              Select a customer above so this unpaid balance can be tracked against their account — a walk-in sale
+              has no one to collect the udhaar from later.
+            </Banner>
+          )}
+
           {paymentMode === 'partial' && (
             <Field label="How much did they pay now?">
               <Input
                 type="number"
                 min="0"
+                placeholder="e.g. 5000"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
               />
@@ -352,6 +366,7 @@ export default function NewSalePage() {
             <Input
               type="number"
               min="0"
+              placeholder="e.g. 500 or leave blank"
               value={discountAmount}
               onChange={(e) => setDiscountAmount(e.target.value)}
             />
@@ -360,6 +375,7 @@ export default function NewSalePage() {
             <Input
               type="number"
               min="0"
+              placeholder="e.g. 1500"
               value={freightAmount}
               onChange={(e) => setFreightAmount(e.target.value)}
             />

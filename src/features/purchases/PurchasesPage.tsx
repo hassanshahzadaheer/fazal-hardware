@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Eye, PackageOpen } from 'lucide-react';
 import { PurchaseOrder } from '../../../shared/types';
 import PurchaseDetailDialog from './PurchaseDetailDialog';
-import { Badge, Button, EmptyState, Input } from '../../components/ui';
+import { Badge, Button, EmptyState, Input, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -113,13 +113,15 @@ export default function PurchasesPage() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end">
-                        <button
-                          onClick={() => setViewing(po)}
-                          aria-label={`View ${po.poNumber}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="View purchase order details">
+                          <button
+                            onClick={() => setViewing(po)}
+                            aria-label={`View ${po.poNumber}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </td>
                   </tr>

@@ -118,6 +118,7 @@ export default function LedgerDialog({ partyType, partyId, partyName, balance, o
               <Input
                 type="number"
                 min="0"
+                placeholder="e.g. 5000"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 autoFocus
@@ -132,7 +133,11 @@ export default function LedgerDialog({ partyType, partyId, partyName, balance, o
               </Select>
             </Field>
             <Field label="Notes">
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Input
+                placeholder="e.g. Cheque #4521, partial settlement"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </Field>
             {Number(amount) > 0 && (
               <p className="text-xs text-ink-muted">

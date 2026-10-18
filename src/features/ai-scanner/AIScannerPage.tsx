@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, AlertTriangle, Trash2, Upload } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Trash2, Upload, Loader2, Check } from 'lucide-react';
 import { ProductWithNames, Supplier, ExtractedInvoice } from '../../../shared/types';
 import { findBestMatch } from '../../../shared/lib/productMatch';
-import { Button, Input, Select, Field } from '../../components/ui';
+import { Button, Input, Select, Field, Tooltip } from '../../components/ui';
 
 type Step = 'upload' | 'processing' | 'review';
 
@@ -15,16 +15,23 @@ interface ReviewItem {
   rate: number;
 }
 
-const PROCESSING_MESSAGES = [
-  'Uploading invoice…',
-  'AI is reading the invoice text…',
-  'Matching items to your products…',
+// Gemini returns one single response — there's no real per-stage progress to
+// report — so these stages are a perceived-progress UI: each message is
+// paired with a progress-bar ceiling it advances toward and holds at, so the
+// bar never looks stalled even on a slow network, and the final stage only
+// completes once the actual response lands (§25.3 — the one feature that
+// needs the internet, so it should visibly show it's working, not hang).
+const PROCESSING_STAGES = [
+  { label: 'Uploading invoice', ceiling: 30 },
+  { label: 'AI is reading the invoice text', ceiling: 70 },
+  { label: 'Matching items to your products', ceiling: 92 },
 ];
 
 export default function AIScannerPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('upload');
   const [processingMsgIndex, setProcessingMsgIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [supplierId, setSupplierId] = useState('');
   const [invoiceDate, setInvoiceDate] = useState<string | null>(null);
@@ -53,18 +60,29 @@ export default function AIScannerPage() {
 
     setStep('processing');
     setProcessingMsgIndex(0);
+    setProgress(0);
     const msgTimer = setInterval(() => {
-      setProcessingMsgIndex((i) => Math.min(i + 1, PROCESSING_MESSAGES.length - 1));
-    }, 900);
+      setProcessingMsgIndex((i) => Math.min(i + 1, PROCESSING_STAGES.length - 1));
+    }, 1400);
+    const progressTimer = setInterval(() => {
+      setProcessingMsgIndex((i) => {
+        const ceiling = PROCESSING_STAGES[i].ceiling;
+        setProgress((p) => (p < ceiling ? p + 1 : p));
+        return i;
+      });
+    }, 60);
 
     const res = await window.api.aiScanner.scan(picked.data);
     clearInterval(msgTimer);
+    clearInterval(progressTimer);
 
     if (!res.ok) {
       setError(res.error.message);
       setStep('upload');
       return;
     }
+
+    setProgress(100);
 
     const extracted = res.data as ExtractedInvoice;
     const catalog = products ?? [];
@@ -80,6 +98,8 @@ export default function AIScannerPage() {
 
     setItems(reviewItems);
     setInvoiceDate(extracted.invoiceDate);
+    // Brief pause so the 100% fill is actually visible before the view swaps.
+    await new Promise((resolve) => setTimeout(resolve, 350));
     setStep('review');
   };
 
@@ -168,9 +188,52 @@ export default function AIScannerPage() {
       )}
 
       {step === 'processing' && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-10 h-10 border-4 border-accent/25 border-t-accent rounded-full animate-spin" />
-          <p className="text-sm text-ink-muted">{PROCESSING_MESSAGES[processingMsgIndex]}</p>
+        <div className="flex flex-col items-center justify-center py-16 gap-8">
+          <div className="flex items-center gap-3">
+            {PROCESSING_STAGES.map((stage, i) => {
+              const done = i < processingMsgIndex || progress === 100;
+              const active = i === processingMsgIndex && progress < 100;
+              return (
+                <div key={stage.label} className="flex items-center gap-3">
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                      done
+                        ? 'bg-success text-white'
+                        : active
+                        ? 'bg-accent-soft text-accent'
+                        : 'bg-surface-sunken text-ink-faint'
+                    }`}
+                  >
+                    {done ? (
+                      <Check className="w-4 h-4" />
+                    ) : active ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span className="text-xs font-semibold">{i + 1}</span>
+                    )}
+                  </div>
+                  {i < PROCESSING_STAGES.length - 1 && (
+                    <div className={`w-10 h-[2px] rounded-full ${done ? 'bg-success' : 'bg-border'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="w-full max-w-sm">
+            <p className="text-[13px] font-medium text-ink text-center mb-2">
+              {PROCESSING_STAGES[processingMsgIndex].label}…
+            </p>
+            <div className="h-1.5 w-full bg-surface-sunken rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent rounded-full transition-[width] duration-150 ease-standard"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-[12px] text-ink-faint text-center mt-2">
+              This usually takes a few seconds — hang tight, the AI is still working.
+            </p>
+          </div>
         </div>
       )}
 
@@ -194,8 +257,8 @@ export default function AIScannerPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Invoice Date">
-              <Input value={invoiceDate ?? ''} readOnly disabled />
+            <Field label="Invoice Date" hint={!invoiceDate ? "AI couldn't find a date on this invoice" : undefined}>
+              <Input value={invoiceDate ?? ''} placeholder="Not detected" readOnly disabled />
             </Field>
           </div>
 
@@ -217,11 +280,13 @@ export default function AIScannerPage() {
                   {items.map((it, i) => (
                     <tr key={i} className="hover:bg-surface-sunken/60 transition-colors">
                       <td className="px-3 py-2">
-                        {it.productId ? (
-                          <CheckCircle2 className="w-4 h-4 text-success" />
-                        ) : (
-                          <AlertTriangle className="w-4 h-4 text-warning" />
-                        )}
+                        <Tooltip content={it.productId ? 'Matched to your catalog' : 'No confident match — pick one manually'}>
+                          {it.productId ? (
+                            <CheckCircle2 className="w-4 h-4 text-success" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-warning" />
+                          )}
+                        </Tooltip>
                       </td>
                       <td className="px-3 py-2 text-ink-muted">{it.description}</td>
                       <td className="px-3 py-2">
@@ -255,13 +320,15 @@ export default function AIScannerPage() {
                         PKR {(it.quantity * it.rate).toLocaleString('en-PK')}
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={() => removeItem(i)}
-                          aria-label="Remove item"
-                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="Remove this line item">
+                          <button
+                            onClick={() => removeItem(i)}
+                            aria-label="Remove item"
+                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))}

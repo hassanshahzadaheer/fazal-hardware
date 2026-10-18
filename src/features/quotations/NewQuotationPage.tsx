@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Trash2, Search } from 'lucide-react';
 import { ProductWithNames, Customer, LineItem, Settings } from '../../../shared/types';
 import { calcLineTotal } from '../sales/lineTotal';
-import { Field, Input, Select, Button } from '../../components/ui';
+import { Field, Input, Select, Button, Tooltip } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -204,7 +204,7 @@ export default function NewQuotationPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products…"
+              placeholder="Search products by name…"
               autoFocus
               className="pl-9"
             />
@@ -239,7 +239,11 @@ export default function NewQuotationPage() {
                   </>
                 )}
                 <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Price</th>
-                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">Disc%</th>
+                <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-20">
+                  <Tooltip content="Discount applied to this line only, before the order-level discount below">
+                    <span>Disc%</span>
+                  </Tooltip>
+                </th>
                 <th className="px-4 py-2 font-medium text-[12px] uppercase tracking-wide w-28">Total</th>
                 <th className="px-4 py-2 w-10" />
               </tr>
@@ -300,13 +304,15 @@ export default function NewQuotationPage() {
                   </td>
                   <td className="px-4 py-2 text-ink font-medium">{formatPKR(l.lineTotal)}</td>
                   <td className="px-2 py-2">
-                    <button
-                      onClick={() => removeLine(l._key)}
-                      aria-label={`Remove ${l.productName}`}
-                      className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <Tooltip content="Remove this item from the quotation">
+                      <button
+                        onClick={() => removeLine(l._key)}
+                        aria-label={`Remove ${l.productName}`}
+                        className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
                   </td>
                 </tr>
               ))}
@@ -343,10 +349,18 @@ export default function NewQuotationPage() {
             </Select>
           </Field>
           <Field label="Customer Phone">
-            <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+            <Input
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="e.g. 0300-1234567"
+            />
           </Field>
           <Field label="Remarks">
-            <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+            <Input
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="e.g. Deliver by Friday, customer requested"
+            />
           </Field>
           <Field label="Valid Until">
             <Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
@@ -362,6 +376,7 @@ export default function NewQuotationPage() {
             <Input
               type="number"
               min="0"
+              placeholder="e.g. 500 or leave blank"
               value={discountAmount}
               onChange={(e) => setDiscountAmount(e.target.value)}
             />
@@ -370,6 +385,7 @@ export default function NewQuotationPage() {
             <Input
               type="number"
               min="0"
+              placeholder="e.g. 1500"
               value={freightAmount}
               onChange={(e) => setFreightAmount(e.target.value)}
             />

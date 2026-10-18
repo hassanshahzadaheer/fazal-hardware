@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, AlertTriangle, Search, PackageSearch } from 'luci
 import { ProductWithNames } from '../../../shared/types';
 import ProductFormDialog from './ProductFormDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Badge, EmptyState, confirmDialog } from '../../components/ui';
+import { Button, Input, Badge, EmptyState, Tooltip, confirmDialog } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number | null): string {
@@ -162,20 +162,24 @@ export default function ProductsPage() {
                       <td className="px-4 py-2.5 text-ink-muted">{product.rackLocation ?? '—'}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => openEdit(product)}
-                            aria-label={`Edit ${product.name}`}
-                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product)}
-                            aria-label={`Delete ${product.name}`}
-                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <Tooltip content="Edit product details">
+                            <button
+                              onClick={() => openEdit(product)}
+                              aria-label={`Edit ${product.name}`}
+                              className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Delete this product permanently">
+                            <button
+                              onClick={() => handleDelete(product)}
+                              aria-label={`Delete ${product.name}`}
+                              className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
                         </div>
                       </td>
                     </tr>

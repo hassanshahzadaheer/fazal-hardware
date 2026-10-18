@@ -5,7 +5,7 @@ import { Plus, Eye, RotateCcw, Search, Receipt } from 'lucide-react';
 import { SaleInvoice } from '../../../shared/types';
 import SaleDetailDialog from './SaleDetailDialog';
 import SaleReturnDialog from './SaleReturnDialog';
-import { Input, Badge, EmptyState } from '../../components/ui';
+import { Input, Badge, EmptyState, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -125,21 +125,25 @@ export default function SalesPage() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setViewing(inv)}
-                          aria-label={`View ${inv.invoiceNumber}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {inv.status !== 'returned' && (
+                        <Tooltip content="View invoice details">
                           <button
-                            onClick={() => setReturning(inv)}
-                            aria-label={`Return ${inv.invoiceNumber}`}
-                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                            onClick={() => setViewing(inv)}
+                            aria-label={`View ${inv.invoiceNumber}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
+                        </Tooltip>
+                        {inv.status !== 'returned' && (
+                          <Tooltip content="Return items from this sale">
+                            <button
+                              onClick={() => setReturning(inv)}
+                              aria-label={`Return ${inv.invoiceNumber}`}
+                              className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
                         )}
                       </div>
                     </td>

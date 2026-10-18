@@ -5,7 +5,7 @@ import { Customer } from '../../../shared/types';
 import { CUSTOMER_TYPES, CustomerType } from '../../../shared/constants';
 import LedgerDialog from '../ledger/LedgerDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Select, Field, Modal, Badge, EmptyState, confirmDialog } from '../../components/ui';
+import { Button, Input, Select, Field, Modal, Badge, EmptyState, Tooltip, confirmDialog } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -156,27 +156,33 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setViewingLedger(customer)}
-                          aria-label={`Ledger for ${customer.name}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <BookOpenText className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openEdit(customer)}
-                          aria-label={`Edit ${customer.name}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(customer)}
-                          aria-label={`Delete ${customer.name}`}
-                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="View ledger (balance history)">
+                          <button
+                            onClick={() => setViewingLedger(customer)}
+                            aria-label={`Ledger for ${customer.name}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <BookOpenText className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Edit customer details">
+                          <button
+                            onClick={() => openEdit(customer)}
+                            aria-label={`Edit ${customer.name}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Delete customer">
+                          <button
+                            onClick={() => handleDelete(customer)}
+                            aria-label={`Delete ${customer.name}`}
+                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </td>
                   </tr>
@@ -269,11 +275,11 @@ function CustomerFormDialog({
         )}
 
         <Field label="Name" required>
-          <Input required value={name} onChange={(e) => setName(e.target.value)} />
+          <Input required placeholder="e.g. Ahmed Traders" value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
 
         <Field label="Phone">
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input placeholder="e.g. 0300-1234567" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </Field>
 
         <Field label="Type">
@@ -288,7 +294,7 @@ function CustomerFormDialog({
         </Field>
 
         <Field label="Address">
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Input placeholder="e.g. Shop 12, Main Market, Lahore" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
       </form>
     </Modal>

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Trash2 } from 'lucide-react';
 import { ProductWithNames, Supplier, PurchaseLineItem } from '../../../shared/types';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Field, Input, Select } from '../../components/ui';
+import { Button, Field, Input, Select, Tooltip } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -197,13 +197,15 @@ export default function NewPurchasePage() {
                   </td>
                   <td className="px-4 py-2.5 text-ink font-medium tabular-nums">{formatPKR(l.lineTotal)}</td>
                   <td className="px-2 py-2">
-                    <button
-                      onClick={() => removeLine(l._key)}
-                      aria-label={`Remove ${l.productName}`}
-                      className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <Tooltip content="Remove this item from the purchase">
+                      <button
+                        onClick={() => removeLine(l._key)}
+                        aria-label={`Remove ${l.productName}`}
+                        className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
                   </td>
                 </tr>
               ))}
@@ -248,6 +250,7 @@ export default function NewPurchasePage() {
               <Input
                 type="number"
                 min="0"
+                placeholder="e.g. 5000"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
               />
@@ -264,6 +267,7 @@ export default function NewPurchasePage() {
             <Input
               type="number"
               min="0"
+              placeholder="e.g. 1500"
               value={freightAmount}
               onChange={(e) => setFreightAmount(e.target.value)}
             />

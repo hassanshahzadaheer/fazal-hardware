@@ -82,10 +82,20 @@ export default function StockAdjustDialog({ product, onClose, onSaved }: Props) 
             ))}
           </Select>
         </Field>
-        <Field label="Quantity" hint={type === 'adjustment' ? '(+ or -)' : undefined}>
+        <Field
+          label="Quantity"
+          hint={
+            type === 'adjustment'
+              ? 'Use + to increase stock, - to decrease it'
+              : type === 'wastage'
+                ? 'Enter a positive number — it will be subtracted from stock'
+                : 'Enter a positive number — it will be added to stock'
+          }
+        >
           <Input
             type="number"
             step="any"
+            placeholder="e.g. -5 or 5"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             autoFocus
@@ -96,7 +106,7 @@ export default function StockAdjustDialog({ product, onClose, onSaved }: Props) 
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="Reason for adjustment"
+            placeholder="e.g. Damaged in transit, Stock count correction"
           />
         </Field>
       </form>

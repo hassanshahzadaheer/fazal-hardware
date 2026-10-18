@@ -4,7 +4,7 @@ import { AlertTriangle, SlidersHorizontal, Clock, PackageSearch } from 'lucide-r
 import { ProductWithNames } from '../../../shared/types';
 import StockAdjustDialog from './StockAdjustDialog';
 import StockHistoryDialog from './StockHistoryDialog';
-import { Badge, EmptyState, Input } from '../../components/ui';
+import { Badge, EmptyState, Input, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -140,13 +140,15 @@ export default function StockPage() {
                             <SlidersHorizontal className="w-3.5 h-3.5" />
                             Adjust
                           </button>
-                          <button
-                            onClick={() => setViewingHistory(p)}
-                            aria-label={`History for ${p.name}`}
-                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                          >
-                            <Clock className="w-4 h-4" />
-                          </button>
+                          <Tooltip content="View stock movement history">
+                            <button
+                              onClick={() => setViewingHistory(p)}
+                              aria-label={`History for ${p.name}`}
+                              className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                            >
+                              <Clock className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
                         </div>
                       </td>
                     </tr>

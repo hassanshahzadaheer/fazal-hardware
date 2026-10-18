@@ -15,11 +15,11 @@ import {
   HandCoins,
   BarChart3,
   Settings as SettingsIcon,
-  LogOut,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { useAuthStore } from '../../stores/authStore';
+import { Tooltip } from '../ui';
+import UserMenu from './UserMenu';
 
 interface NavItem {
   label: string;
@@ -73,7 +73,6 @@ const NAV_GROUPS: NavGroup[] = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const { user, logout } = useAuthStore();
 
   return (
     <aside
@@ -100,11 +99,10 @@ export default function Sidebar() {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const active = location.pathname === item.to;
-                return (
+                const link = (
                   <Link
                     key={item.to}
                     to={item.to}
-                    title={collapsed ? item.label : undefined}
                     className={`relative flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] transition-colors duration-150 ${
                       active ? 'bg-shell-raised text-white font-medium' : 'text-white/55 hover:bg-shell-raised/60 hover:text-white/90'
                     }`}
@@ -114,6 +112,13 @@ export default function Sidebar() {
                     {!collapsed && <span className="truncate">{item.label}</span>}
                   </Link>
                 );
+                return collapsed ? (
+                  <Tooltip key={item.to} content={item.label} side="bottom" className="flex w-full">
+                    {link}
+                  </Tooltip>
+                ) : (
+                  link
+                );
               })}
             </div>
           </div>
@@ -121,23 +126,16 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-shell-border p-2 space-y-0.5 shrink-0">
-        {!collapsed && user && (
-          <div className="px-2.5 py-1.5 text-[12px] text-white/45 truncate">{user.email}</div>
-        )}
-        <button
-          onClick={() => logout()}
-          className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] text-white/55 hover:bg-shell-raised/60 hover:text-white/90 transition-colors"
-        >
-          <LogOut className="w-[15px] h-[15px] shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </button>
-        <button
-          onClick={() => setCollapsed((v) => !v)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="w-full flex items-center justify-center py-[7px] rounded-md text-white/35 hover:bg-shell-raised/60 hover:text-white/80 transition-colors"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        <UserMenu collapsed={collapsed} />
+        <Tooltip content={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} side="top" className="flex w-full">
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="w-full flex items-center justify-center py-[7px] rounded-md text-white/35 hover:bg-shell-raised/60 hover:text-white/80 transition-colors"
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </Tooltip>
       </div>
     </aside>
   );

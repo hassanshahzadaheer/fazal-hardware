@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tag, Bookmark, Trash2, DatabaseBackup, FolderOpen, LucideIcon } from 'lucide-react';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Field, EmptyState, TableSkeleton, confirmDialog } from '../../components/ui';
+import { Button, Input, Field, EmptyState, TableSkeleton, Tooltip, confirmDialog } from '../../components/ui';
 
 type Tab = 'categories' | 'brands' | 'company' | 'backup';
 
@@ -141,13 +141,15 @@ function NameListTab({
                   <Icon className="w-4 h-4 text-accent" />
                   {item.name}
                 </span>
-                <button
-                  onClick={() => handleDelete(item)}
-                  aria-label={`Delete ${item.name}`}
-                  className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <Tooltip content={`Delete "${item.name}"`}>
+                  <button
+                    onClick={() => handleDelete(item)}
+                    aria-label={`Delete ${item.name}`}
+                    className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
               </li>
             ))}
           </ul>
@@ -161,7 +163,7 @@ function CategoriesTab() {
   return (
     <NameListTab
       icon={Tag}
-      placeholder="New category name"
+      placeholder="e.g. Paints & Chemicals"
       queryKey="categories"
       list={window.api.categories.list}
       create={window.api.categories.create}
@@ -174,7 +176,7 @@ function BrandsTab() {
   return (
     <NameListTab
       icon={Bookmark}
-      placeholder="New brand name"
+      placeholder="e.g. Dadex"
       queryKey="brands"
       list={window.api.brands.list}
       create={window.api.brands.create}
@@ -234,9 +236,21 @@ function CompanyInfoTab() {
     return <TableSkeleton rows={4} cols={1} />;
   }
 
+  const PLACEHOLDERS: Record<keyof CompanyForm, string> = {
+    companyName: 'e.g. Fazal Hardware Store',
+    address: 'e.g. Shop 12, Main Bazaar Road, Lahore',
+    phone: 'e.g. 0300-1234567',
+    email: 'e.g. info@fazalhardware.pk',
+  };
+
   const field = (key: keyof CompanyForm, label: string, type = 'text') => (
     <Field label={label}>
-      <Input type={type} value={current[key]} onChange={(e) => setForm({ ...current, [key]: e.target.value })} />
+      <Input
+        type={type}
+        value={current[key]}
+        onChange={(e) => setForm({ ...current, [key]: e.target.value })}
+        placeholder={PLACEHOLDERS[key]}
+      />
     </Field>
   );
 

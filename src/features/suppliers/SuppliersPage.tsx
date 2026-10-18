@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, BookOpenText, Truck, Search } from 'lucide-react'
 import { Supplier } from '../../../shared/types';
 import LedgerDialog from '../ledger/LedgerDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Field, Modal, Badge, EmptyState, confirmDialog } from '../../components/ui';
+import { Button, Input, Field, Modal, Badge, EmptyState, Tooltip, confirmDialog } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -137,27 +137,33 @@ export default function SuppliersPage() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setViewingLedger(supplier)}
-                          aria-label={`Ledger for ${supplier.name}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <BookOpenText className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openEdit(supplier)}
-                          aria-label={`Edit ${supplier.name}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(supplier)}
-                          aria-label={`Delete ${supplier.name}`}
-                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="View ledger (balance history)">
+                          <button
+                            onClick={() => setViewingLedger(supplier)}
+                            aria-label={`Ledger for ${supplier.name}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <BookOpenText className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Edit supplier details">
+                          <button
+                            onClick={() => openEdit(supplier)}
+                            aria-label={`Edit ${supplier.name}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Delete supplier">
+                          <button
+                            onClick={() => handleDelete(supplier)}
+                            aria-label={`Delete ${supplier.name}`}
+                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </td>
                   </tr>
@@ -249,15 +255,15 @@ function SupplierFormDialog({
         )}
 
         <Field label="Name" required>
-          <Input required value={name} onChange={(e) => setName(e.target.value)} />
+          <Input required placeholder="e.g. Al-Madina Steel & Hardware" value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
 
         <Field label="Phone">
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input placeholder="e.g. 0321-9876543" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </Field>
 
         <Field label="Address">
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Input placeholder="e.g. Plot 45, Industrial Area, Karachi" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
       </form>
     </Modal>

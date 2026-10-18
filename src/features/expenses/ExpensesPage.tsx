@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, TrendingDown } from 'lucide-react';
 import { Expense } from '../../../shared/types';
 import { EXPENSE_HEADS, EXPENSE_PAYMENT_MODES } from '../../../shared/constants';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, Select } from '../../components/ui';
+import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, Select, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -170,20 +170,24 @@ export default function ExpensesPage() {
                     <td className="px-4 py-2.5 text-danger font-medium tabular-nums">{formatPKR(e.amount)}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(e)}
-                          aria-label={`Edit expense on ${e.date}`}
-                          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(e)}
-                          aria-label={`Delete expense on ${e.date}`}
-                          className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="Edit this expense">
+                          <button
+                            onClick={() => openEdit(e)}
+                            aria-label={`Edit expense on ${e.date}`}
+                            className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Delete this expense">
+                          <button
+                            onClick={() => handleDelete(e)}
+                            aria-label={`Delete expense on ${e.date}`}
+                            className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </td>
                   </tr>
@@ -277,6 +281,7 @@ function ExpenseFormDialog({
             type="number"
             min="0"
             required
+            placeholder="e.g. 15000"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
@@ -291,7 +296,7 @@ function ExpenseFormDialog({
           </Select>
         </Field>
         <Field label="Description">
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <Input placeholder="e.g. Monthly shop rent" value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
         <Field label="Payment Mode">
           <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as typeof paymentMode)}>
@@ -303,7 +308,7 @@ function ExpenseFormDialog({
           </Select>
         </Field>
         <Field label="Reference">
-          <Input value={reference} onChange={(e) => setReference(e.target.value)} />
+          <Input placeholder="e.g. Receipt #2291 or cheque number" value={reference} onChange={(e) => setReference(e.target.value)} />
         </Field>
       </form>
     </Modal>

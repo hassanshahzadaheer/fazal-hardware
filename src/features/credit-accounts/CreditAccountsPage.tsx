@@ -5,7 +5,7 @@ import { Customer, SaleInvoice } from '../../../shared/types';
 import { maxAgeDays, isOverdue } from './aging';
 import StatementDialog from './StatementDialog';
 import LedgerDialog from '../ledger/LedgerDialog';
-import { Badge, EmptyState } from '../../components/ui';
+import { Badge, Banner, EmptyState } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -46,6 +46,11 @@ export default function CreditAccountsPage() {
     () => accounts.reduce((max, a) => (a.customer.balance > (max?.customer.balance ?? 0) ? a : max), null as (typeof accounts)[number] | null),
     [accounts]
   );
+  const overdueAccounts = useMemo(() => accounts.filter((a) => a.overdue), [accounts]);
+  const overdueTotal = useMemo(
+    () => overdueAccounts.reduce((sum, a) => sum + a.customer.balance, 0),
+    [overdueAccounts]
+  );
 
   return (
     <div className="p-8 max-w-[1400px]">
@@ -71,6 +76,14 @@ export default function CreditAccountsPage() {
           {highest && <div className="text-xs text-ink-muted">{highest.customer.name}</div>}
         </div>
       </div>
+
+      {overdueAccounts.length > 0 && (
+        <div className="mb-4">
+          <Banner tone="warning" title="Overdue balances need follow-up">
+            {overdueAccounts.length} customer{overdueAccounts.length > 1 ? 's' : ''} {overdueAccounts.length > 1 ? 'have' : 'has'} credit outstanding for more than 30 days, totalling {formatPKR(overdueTotal)}. Consider calling to collect before it ages further.
+          </Banner>
+        </div>
+      )}
 
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         {accounts.length === 0 ? (
