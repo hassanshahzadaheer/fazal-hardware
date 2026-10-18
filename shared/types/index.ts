@@ -1,7 +1,245 @@
-// Shared types for Fazal Hardware.
-// Entity types (Product, Customer, Supplier, SaleInvoice, ...) will be added here
-// per docs/Fazal_Hardware_PRD.md Section 4 as modules are built.
+// Shared types for Fazal Hardware, per docs/Fazal_Hardware_PRD.md §4.
+// IDs are `number` (SQLite INTEGER PRIMARY KEY AUTOINCREMENT), not the PRD's
+// illustrative `string` (which assumed Mongo-style ids from the old Base44 backend).
+// Field names are camelCase at the API/type boundary; electron/db stores snake_case
+// columns — handlers (Phase 2+) are responsible for mapping between the two.
 
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string; details?: any } };
+
+import {
+  BaseUnit,
+  CustomerType,
+  PriceTier,
+  DocPaymentMode,
+  SaleStatus,
+  PurchaseStatus,
+  QuotationStatus,
+  ExpensePaymentMode,
+  StockMovementType,
+  StockMovementReferenceType,
+  PaymentPartyType,
+  PaymentDirection,
+  PaymentMode,
+  PaymentReferenceType,
+  UserRole,
+} from '../constants';
+
+export interface Category {
+  id: number;
+  name: string;
+  parentId: number | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Brand {
+  id: number;
+  name: string;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  categoryId: number | null;
+  brandId: number | null;
+  variantAttributes: Record<string, string> | null;
+  baseUnit: BaseUnit;
+  purchaseUnit: string | null;
+  purchaseUnitFactor: number | null;
+  retailPrice: number | null;
+  wholesalePrice: number | null;
+  costPrice: number | null;
+  reorderLevel: number | null;
+  rackLocation: string | null;
+  barcode: string | null;
+  stockOnHand: number;
+  isActive: boolean;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Customer {
+  id: number;
+  name: string;
+  phone: string | null;
+  type: CustomerType | null;
+  address: string | null;
+  balance: number;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Supplier {
+  id: number;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  balance: number;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+// Sales/Quotation line item — supports dimensional (L×W) selling per §22.1.
+export interface LineItem {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unit: string;
+  length?: number | null;
+  width?: number | null;
+  unitPrice: number;
+  discountPercent?: number;
+  lineTotal: number;
+}
+
+// Purchase line item — no dimensional selling, no per-line discount (§10.2).
+export interface PurchaseLineItem {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface SaleInvoice {
+  id: number;
+  invoiceNumber: string;
+  customerId: number | null;
+  customerName: string | null;
+  items: LineItem[];
+  subtotal: number;
+  discountAmount: number;
+  freightAmount: number;
+  total: number;
+  paidAmount: number;
+  paymentMode: DocPaymentMode | null;
+  status: SaleStatus;
+  priceTier: PriceTier;
+  quotationId: number | null;
+  notes: string | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  poNumber: string;
+  supplierId: number | null;
+  supplierName: string | null;
+  items: PurchaseLineItem[];
+  subtotal: number;
+  freightAmount: number;
+  total: number;
+  paidAmount: number;
+  paymentMode: DocPaymentMode | null;
+  status: PurchaseStatus;
+  notes: string | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Quotation {
+  id: number;
+  quotationNumber: string;
+  customerId: number | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  remarks: string | null;
+  items: LineItem[];
+  subtotal: number;
+  discountAmount: number;
+  freightAmount: number;
+  total: number;
+  status: QuotationStatus;
+  convertedToInvoiceId: number | null;
+  validUntil: string | null;
+  notes: string | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Expense {
+  id: number;
+  date: string;
+  expenseHead: string;
+  description: string | null;
+  amount: number;
+  paymentMode: ExpensePaymentMode;
+  reference: string | null;
+  notes: string | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface StockMovement {
+  id: number;
+  productId: number;
+  type: StockMovementType;
+  quantity: number;
+  referenceType: StockMovementReferenceType | null;
+  referenceId: number | null;
+  notes: string | null;
+  costPriceAtTime: number | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface Payment {
+  id: number;
+  partyType: PaymentPartyType;
+  partyId: number;
+  partyName: string | null;
+  amount: number;
+  direction: PaymentDirection;
+  mode: PaymentMode;
+  referenceType: PaymentReferenceType | null;
+  referenceId: number | null;
+  notes: string | null;
+  createdDate: string;
+  updatedDate: string;
+  createdById: number | null;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  fullName: string | null;
+  role: UserRole;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdDate: string;
+  updatedDate: string;
+}
+
+export interface SessionUser {
+  id: number;
+  email: string;
+  fullName: string | null;
+  role: UserRole;
+}
+
+// Single-row company info consumed by print templates (resolved Open Question, Task 1.1).
+export interface Settings {
+  id: 1;
+  companyName: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  createdDate: string;
+  updatedDate: string;
+}
