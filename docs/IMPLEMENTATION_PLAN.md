@@ -55,31 +55,35 @@ Rebuild Fazal Hardware as an offline-first Electron desktop app: React 18 + Vite
 
 ## Phase 2: Catalog & Parties
 
-- [ ] **Task 2.1** — Category & Brand CRUD: IPC handlers + `Settings` page with the two PRD tabs (§19), create/delete only (no edit, per PRD). **Plus a third "Company Info" tab** (resolved Open Question below) — edits the single `settings` row (name/address/phone/email) consumed by every print template in Phases 6/7/9.
-  - Acceptance: add/delete category and brand persists and reflects immediately in the list; editing company info persists and is reflected the next time a print template renders.
-  - Verify: vitest on handlers; manual check in Settings page.
+- [x] ~~**Task 2.1** — Category & Brand CRUD: IPC handlers + `Settings` page with the two PRD tabs (§19), create/delete only (no edit, per PRD). **Plus a third "Company Info" tab** (resolved Open Question below) — edits the single `settings` row (name/address/phone/email) consumed by every print template in Phases 6/7/9.~~
+  - ~~Acceptance: add/delete category and brand persists and reflects immediately in the list; editing company info persists and is reflected the next time a print template renders.~~
+  - ~~Verify: vitest on handlers; manual check in Settings page.~~
   - Dependencies: 1.1–1.3.
   - Files: `electron/handlers/categories.ts`, `electron/handlers/brands.ts`, `electron/handlers/settings.ts`, `src/features/settings/SettingsPage.tsx`.
+  - **Done, uncommitted** — 17 new tests (categories 7, brands 5, settings 3, + regression coverage) passing, 45/45 total. Added a minimal top-nav shell (`ProtectedShell` in `src/App.tsx`, Home/Settings links) so pages are reachable for manual testing before the real sidebar lands in Phase 12 — not styled to the PRD palette yet, that's explicitly deferred. `tsc --noEmit` clean, both builds succeed. **Not manually clicked through** — automated checks only this time, your call whether to verify in `npm run dev` before Task 2.2.
 
-- [ ] **Task 2.2** — Product CRUD: handler + `ProductsPage` (list, search by name/category/brand/barcode/rack_location) + `ProductFormDialog` (two tabs: details, barcode lookup — barcode *input*, camera scanning deferred to a later polish task).
-  - Acceptance: create/edit/delete a product; low-stock indicator shows when `stock_on_hand <= reorder_level`; variant attributes render as "18mm · Commercial · 8x4".
-  - Verify: vitest on handler CRUD + validation; manual check of search and low-stock styling.
+- [x] ~~**Task 2.2** — Product CRUD: handler + `ProductsPage` (list, search by name/category/brand/barcode/rack_location) + `ProductFormDialog` (two tabs: details, barcode lookup — barcode *input*, camera scanning deferred to a later polish task).~~
+  - ~~Acceptance: create/edit/delete a product; low-stock indicator shows when `stock_on_hand <= reorder_level`; variant attributes render as "18mm · Commercial · 8x4".~~
+  - ~~Verify: vitest on handler CRUD + validation; manual check of search and low-stock styling.~~
   - Dependencies: 2.1.
   - Files: `electron/handlers/products.ts`, `src/features/products/ProductsPage.tsx`, `src/features/products/ProductFormDialog.tsx`.
+  - **Done, uncommitted** — added `ProductWithNames` to `shared/types` (not `electron/handlers/`) so the renderer isn't importing types from the main-process layer. 15 new tests (10 handler + 5 variant-parsing), 60/60 total. `tsc --noEmit` clean, both builds succeed. Not manually clicked through.
 
-- [ ] **Task 2.3** — Customer CRUD + ledger balance field (§11). No ledger *dialog* yet — that lands in Phase 6 alongside Payments.
-  - Acceptance: create/edit/delete customer; `balance` defaults to 0 and is not directly editable from the form.
-  - Verify: vitest on handler; manual check.
+- [x] ~~**Task 2.3** — Customer CRUD + ledger balance field (§11). No ledger *dialog* yet — that lands in Phase 6 alongside Payments.~~
+  - ~~Acceptance: create/edit/delete customer; `balance` defaults to 0 and is not directly editable from the form.~~
+  - ~~Verify: vitest on handler; manual check.~~
   - Dependencies: 1.1–1.3.
   - Files: `electron/handlers/customers.ts`, `src/features/customers/CustomersPage.tsx`.
+  - **Done, uncommitted** — `balance` isn't in `customerUpdateSchema` at all, so a caller-supplied `balance` in an update payload is silently stripped by zod rather than needing explicit filtering code; tested explicitly. 8/8 new tests.
 
-- [ ] **Task 2.4** — Supplier CRUD + payable balance field (§12), mirroring 2.3 minus the `type` field.
-  - Acceptance / Verify: same shape as 2.3.
+- [x] ~~**Task 2.4** — Supplier CRUD + payable balance field (§12), mirroring 2.3 minus the `type` field.~~
+  - ~~Acceptance / Verify: same shape as 2.3.~~
   - Dependencies: 1.1–1.3.
   - Files: `electron/handlers/suppliers.ts`, `src/features/suppliers/SuppliersPage.tsx`.
+  - **Done, uncommitted** — same pattern as 2.3. 7/7 new tests.
 
 ### Checkpoint — Catalog & Parties
-- [ ] Products, Categories, Brands, Customers, Suppliers all CRUD-able end to end through the UI.
+- [x] ~~Products, Categories, Brands, Customers, Suppliers all CRUD-able end to end through the UI.~~ — 75/75 tests passing, `tsc --noEmit` clean, both builds succeed. **Not manually clicked through this phase** — Task 2.1's login-screen-style manual check didn't happen for 2.2–2.4; worth a `npm run dev` pass before Phase 3 given none of Products/Customers/Suppliers UI has been visually confirmed yet.
 - [ ] Review with you before Phase 3.
 
 ## Phase 3: Stock Management

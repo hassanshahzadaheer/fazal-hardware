@@ -2,8 +2,14 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import log from 'electron-log';
 import { initDb, closeDb, getDb } from './db';
-import { Result, SessionUser } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier } from '../shared/types';
 import { login } from './handlers/auth';
+import * as categoriesHandler from './handlers/categories';
+import * as brandsHandler from './handlers/brands';
+import * as settingsHandler from './handlers/settings';
+import * as productsHandler from './handlers/products';
+import * as customersHandler from './handlers/customers';
+import * as suppliersHandler from './handlers/suppliers';
 
 log.initialize();
 log.info('Starting Fazal Hardware...');
@@ -100,4 +106,87 @@ ipcMain.handle('auth:logout', async (): Promise<Result<null>> => {
 
 ipcMain.handle('auth:getCurrentUser', async (): Promise<Result<SessionUser | null>> => {
   return { ok: true, data: sessionUser };
+});
+
+ipcMain.handle('categories:list', async (): Promise<Result<Category[]>> => {
+  return categoriesHandler.list(getDb());
+});
+
+ipcMain.handle('categories:create', async (_event, payload): Promise<Result<Category>> => {
+  return categoriesHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('categories:delete', async (_event, id): Promise<Result<null>> => {
+  return categoriesHandler.remove(getDb(), id);
+});
+
+ipcMain.handle('brands:list', async (): Promise<Result<Brand[]>> => {
+  return brandsHandler.list(getDb());
+});
+
+ipcMain.handle('brands:create', async (_event, payload): Promise<Result<Brand>> => {
+  return brandsHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('brands:delete', async (_event, id): Promise<Result<null>> => {
+  return brandsHandler.remove(getDb(), id);
+});
+
+ipcMain.handle('settings:get', async (): Promise<Result<Settings>> => {
+  return settingsHandler.get(getDb());
+});
+
+ipcMain.handle('settings:update', async (_event, payload): Promise<Result<Settings>> => {
+  return settingsHandler.update(getDb(), payload);
+});
+
+ipcMain.handle('products:list', async (): Promise<Result<ProductWithNames[]>> => {
+  return productsHandler.list(getDb());
+});
+
+ipcMain.handle('products:create', async (_event, payload): Promise<Result<ProductWithNames>> => {
+  return productsHandler.create(getDb(), payload);
+});
+
+ipcMain.handle(
+  'products:update',
+  async (_event, { id, payload }): Promise<Result<ProductWithNames>> => {
+    return productsHandler.update(getDb(), id, payload);
+  }
+);
+
+ipcMain.handle('products:delete', async (_event, id): Promise<Result<null>> => {
+  return productsHandler.remove(getDb(), id);
+});
+
+ipcMain.handle('customers:list', async (): Promise<Result<Customer[]>> => {
+  return customersHandler.list(getDb());
+});
+
+ipcMain.handle('customers:create', async (_event, payload): Promise<Result<Customer>> => {
+  return customersHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('customers:update', async (_event, { id, payload }): Promise<Result<Customer>> => {
+  return customersHandler.update(getDb(), id, payload);
+});
+
+ipcMain.handle('customers:delete', async (_event, id): Promise<Result<null>> => {
+  return customersHandler.remove(getDb(), id);
+});
+
+ipcMain.handle('suppliers:list', async (): Promise<Result<Supplier[]>> => {
+  return suppliersHandler.list(getDb());
+});
+
+ipcMain.handle('suppliers:create', async (_event, payload): Promise<Result<Supplier>> => {
+  return suppliersHandler.create(getDb(), payload);
+});
+
+ipcMain.handle('suppliers:update', async (_event, { id, payload }): Promise<Result<Supplier>> => {
+  return suppliersHandler.update(getDb(), id, payload);
+});
+
+ipcMain.handle('suppliers:delete', async (_event, id): Promise<Result<null>> => {
+  return suppliersHandler.remove(getDb(), id);
 });

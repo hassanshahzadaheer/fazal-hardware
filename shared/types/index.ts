@@ -233,6 +233,13 @@ export interface SessionUser {
   role: UserRole;
 }
 
+// Product list/detail views need category/brand names (PRD §7.2 table columns),
+// which isn't part of the canonical Product shape above.
+export interface ProductWithNames extends Product {
+  categoryName: string | null;
+  brandName: string | null;
+}
+
 // Single-row company info consumed by print templates (resolved Open Question, Task 1.1).
 export interface Settings {
   id: 1;
