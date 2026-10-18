@@ -4,12 +4,23 @@ import { Plus, Pencil, Trash2, BookOpenText, Truck } from 'lucide-react';
 import { Supplier } from '../../../shared/types';
 import LedgerDialog from '../ledger/LedgerDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Field, Modal, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar } from '../../components/ui';
+import { Button, Input, Field, Modal, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
 }
+
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per supplier id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
 
 export default function SuppliersPage() {
   const queryClient = useQueryClient();
@@ -17,6 +28,8 @@ export default function SuppliersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [viewingLedger, setViewingLedger] = useState<Supplier | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: suppliers, isLoading } = useQuery({
     queryKey: ['suppliers'],
@@ -53,6 +66,18 @@ export default function SuppliersPage() {
     [suppliers]
   );
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   const openCreate = () => {
     setEditing(null);
     setDialogOpen(true);
@@ -86,7 +111,7 @@ export default function SuppliersPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by name or phone…"
           action={
             <Button variant="primary" onClick={openCreate}>
@@ -105,6 +130,7 @@ export default function SuppliersPage() {
             action={!search && <Button variant="primary" onClick={openCreate}><Plus className="w-4 h-4" />Add Supplier</Button>}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -116,11 +142,22 @@ export default function SuppliersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((supplier) => (
+                {paged.map((supplier) => {
+                  const tone = AVATAR_TONES[supplier.id % AVATAR_TONES.length];
+                  return (
                   <tr key={supplier.id} className="hover:bg-surface-sunken/60 transition-colors">
                     <td className="px-4 py-2.5">
-                      <div className="font-medium text-ink">{supplier.name}</div>
-                      {supplier.address && <div className="text-xs text-ink-muted">{supplier.address}</div>}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {supplier.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-ink truncate">{supplier.name}</div>
+                          {supplier.address && <div className="text-xs text-ink-muted truncate">{supplier.address}</div>}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-ink-muted">{supplier.phone ?? '—'}</td>
                     <td className="px-4 py-2.5">
@@ -160,10 +197,22 @@ export default function SuppliersPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+          </>
         )}
       </div>
 

@@ -5,7 +5,7 @@ import { Customer, SaleInvoice } from '../../../shared/types';
 import { maxAgeDays, isOverdue } from './aging';
 import StatementDialog from './StatementDialog';
 import LedgerDialog from '../ledger/LedgerDialog';
-import { Badge, Banner, EmptyState } from '../../components/ui';
+import { Badge, Banner, EmptyState, Pagination } from '../../components/ui';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -14,6 +14,8 @@ function formatPKR(amount: number): string {
 export default function CreditAccountsPage() {
   const [viewingStatement, setViewingStatement] = useState<Customer | null>(null);
   const [receivingFrom, setReceivingFrom] = useState<Customer | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: customers } = useQuery({
     queryKey: ['customers'],
@@ -50,6 +52,13 @@ export default function CreditAccountsPage() {
   const overdueTotal = useMemo(
     () => overdueAccounts.reduce((sum, a) => sum + a.customer.balance, 0),
     [overdueAccounts]
+  );
+
+  const pageCount = Math.max(1, Math.ceil(accounts.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => accounts.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [accounts, safePage, pageSize]
   );
 
   return (
@@ -89,6 +98,7 @@ export default function CreditAccountsPage() {
         {accounts.length === 0 ? (
           <EmptyState icon={Wallet} title="No outstanding credit accounts" description="Customers with an open balance will show up here." />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -101,7 +111,7 @@ export default function CreditAccountsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {accounts.map(({ customer, pendingCount, ageDays: age, overdue }) => (
+                {paged.map(({ customer, pendingCount, ageDays: age, overdue }) => (
                   <tr key={customer.id} className="hover:bg-surface-sunken/60 transition-colors">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
@@ -110,7 +120,11 @@ export default function CreditAccountsPage() {
                         </div>
                         <div>
                           <div className="text-ink font-medium">{customer.name}</div>
-                          {overdue && <div className="text-xs text-danger">{age}d overdue</div>}
+                          {overdue && (
+                            <Badge tone="danger">
+                              <span>{age}d overdue</span>
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -144,6 +158,17 @@ export default function CreditAccountsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={safePage}
+            pageSize={pageSize}
+            total={accounts.length}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+          </>
         )}
       </div>
 

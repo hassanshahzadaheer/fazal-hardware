@@ -5,7 +5,7 @@ import { Customer } from '../../../shared/types';
 import { CUSTOMER_TYPES, CustomerType } from '../../../shared/constants';
 import LedgerDialog from '../ledger/LedgerDialog';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Select, Field, Modal, Badge, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar } from '../../components/ui';
+import { Button, Input, Select, Field, Modal, Badge, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -18,12 +18,25 @@ const TYPE_BADGE_TONE: Record<CustomerType, 'accent' | 'warning' | 'neutral'> = 
   wholesale: 'warning',
 };
 
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per customer id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
+
 export default function CustomersPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [viewingLedger, setViewingLedger] = useState<Customer | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers'],
@@ -60,6 +73,18 @@ export default function CustomersPage() {
     [customers]
   );
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   const openCreate = () => {
     setEditing(null);
     setDialogOpen(true);
@@ -93,7 +118,7 @@ export default function CustomersPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by name or phone…"
           action={
             <Button variant="primary" onClick={openCreate}>
@@ -112,6 +137,7 @@ export default function CustomersPage() {
             action={!search && <Button variant="primary" onClick={openCreate}><Plus className="w-4 h-4" />Add Customer</Button>}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -124,11 +150,22 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((customer) => (
+                {paged.map((customer) => {
+                  const tone = AVATAR_TONES[customer.id % AVATAR_TONES.length];
+                  return (
                   <tr key={customer.id} className="hover:bg-surface-sunken/60 transition-colors">
                     <td className="px-4 py-2.5">
-                      <div className="font-medium text-ink">{customer.name}</div>
-                      {customer.address && <div className="text-xs text-ink-muted">{customer.address}</div>}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {customer.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-ink truncate">{customer.name}</div>
+                          {customer.address && <div className="text-xs text-ink-muted truncate">{customer.address}</div>}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-ink-muted">{customer.phone ?? '—'}</td>
                     <td className="px-4 py-2.5">
@@ -177,10 +214,22 @@ export default function CustomersPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+          </>
         )}
       </div>
 

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Eye, PackageOpen } from 'lucide-react';
 import { PurchaseOrder } from '../../../shared/types';
 import PurchaseDetailDialog from './PurchaseDetailDialog';
-import { Badge, Button, EmptyState, PageHeader, Toolbar, Tooltip } from '../../components/ui';
+import { Badge, Button, EmptyState, PageHeader, Toolbar, Tooltip, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -18,9 +18,22 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'accent' | 'danger'> =
   returned: 'danger',
 };
 
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per PO id, not random, so it doesn't reshuffle on every
+// re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
+
 export default function PurchasesPage() {
   const [search, setSearch] = useState('');
   const [viewing, setViewing] = useState<PurchaseOrder | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: pos, isLoading } = useQuery({
     queryKey: ['purchases'],
@@ -40,6 +53,18 @@ export default function PurchasesPage() {
 
   const totalSpend = useMemo(() => filtered.reduce((sum, po) => sum + po.total, 0), [filtered]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   return (
     <div className="p-8 max-w-[1400px]">
       <PageHeader
@@ -51,7 +76,7 @@ export default function PurchasesPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by PO number or supplier…"
           action={
             <Link to="/purchases/new">
@@ -79,6 +104,7 @@ export default function PurchasesPage() {
             )}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -92,9 +118,21 @@ export default function PurchasesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((po) => (
+                {paged.map((po) => {
+                  const supplierLabel = po.supplierName ?? 'Unknown';
+                  const tone = AVATAR_TONES[po.id % AVATAR_TONES.length];
+                  return (
                   <tr key={po.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-4 py-2.5 text-ink font-medium">{po.poNumber}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {supplierLabel.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-ink">{po.poNumber}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-2.5 text-ink-muted">{po.supplierName ?? '—'}</td>
                     <td className="px-4 py-2.5 text-ink-muted">{new Date(po.createdDate).toLocaleDateString()}</td>
                     <td className="px-4 py-2.5 text-ink tabular-nums">{formatPKR(po.total)}</td>
@@ -117,10 +155,22 @@ export default function PurchasesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              total={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </>
         )}
       </div>
 

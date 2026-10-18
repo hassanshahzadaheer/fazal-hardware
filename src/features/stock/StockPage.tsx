@@ -1,15 +1,26 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, SlidersHorizontal, Clock, PackageSearch } from 'lucide-react';
+import { SlidersHorizontal, Clock, PackageSearch } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
 import StockAdjustDialog from './StockAdjustDialog';
 import StockHistoryDialog from './StockHistoryDialog';
-import { Badge, EmptyState, PageHeader, Toolbar, Tooltip } from '../../components/ui';
+import { Badge, EmptyState, PageHeader, Toolbar, Tooltip, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
 }
+
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per product id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
 
 export default function StockPage() {
   const queryClient = useQueryClient();
@@ -17,6 +28,8 @@ export default function StockPage() {
   const [tab, setTab] = useState<'all' | 'low'>('all');
   const [adjusting, setAdjusting] = useState<ProductWithNames | null>(null);
   const [viewingHistory, setViewingHistory] = useState<ProductWithNames | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
@@ -47,6 +60,18 @@ export default function StockPage() {
     return list;
   }, [products, search, tab]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   const handleAdjusted = () => {
     setAdjusting(null);
     queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -62,7 +87,10 @@ export default function StockPage() {
         {(['all', 'low'] as const).map((key) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => {
+              setTab(key);
+              setPage(1);
+            }}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === key ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink'
             }`}
@@ -75,7 +103,7 @@ export default function StockPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by name, category, or brand…"
         />
         {isLoading ? (
@@ -87,6 +115,7 @@ export default function StockPage() {
             description={tab === 'low' ? 'Everything is above its reorder level.' : 'Add products to start tracking stock levels.'}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -100,20 +129,34 @@ export default function StockPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((p) => {
+                {paged.map((p) => {
                   const low = isLowStock(p);
                   const ratio = p.reorderLevel ? Math.min(1, p.stockOnHand / (p.reorderLevel * 2 || 1)) : 1;
+                  const tone = AVATAR_TONES[p.id % AVATAR_TONES.length];
                   return (
                     <tr key={p.id} className="hover:bg-surface-sunken/60 transition-colors">
                       <td className="px-4 py-2.5">
-                        <div className="font-medium text-ink">{p.name}</div>
-                        {p.brandName && <div className="text-xs text-ink-muted">{p.brandName}</div>}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                          >
+                            {p.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-ink truncate">{p.name}</div>
+                            {p.brandName && <div className="text-xs text-ink-muted truncate">{p.brandName}</div>}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-4 py-2.5 text-ink-muted">{p.categoryName ?? '—'}</td>
                       <td className="px-4 py-2.5">
-                        <div className={`flex items-center gap-1.5 ${low ? 'text-danger font-medium' : 'text-ink'}`}>
-                          {low && <AlertTriangle className="w-3.5 h-3.5" />}
-                          {p.stockOnHand} {p.baseUnit}
+                        {p.categoryName ? <Badge tone="neutral">{p.categoryName}</Badge> : <span className="text-ink-faint">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${low ? 'bg-danger' : 'bg-success'}`} />
+                          <span className={low ? 'text-danger font-medium' : 'text-ink'}>
+                            {p.stockOnHand} {p.baseUnit}
+                          </span>
                         </div>
                         <div className="w-24 h-1.5 bg-surface-sunken rounded-full mt-1 overflow-hidden">
                           <div
@@ -151,6 +194,17 @@ export default function StockPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+          </>
         )}
       </div>
 

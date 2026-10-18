@@ -1,46 +1,48 @@
 import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tag, Bookmark, Trash2, DatabaseBackup, FolderOpen, LucideIcon } from 'lucide-react';
+import { Tag, Bookmark, Trash2, DatabaseBackup, FolderOpen, Building2, LucideIcon } from 'lucide-react';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, Input, Field, EmptyState, TableSkeleton, Tooltip, confirmDialog } from '../../components/ui';
+import { Button, Input, Field, EmptyState, TableSkeleton, Tooltip, confirmDialog, PageHeader } from '../../components/ui';
 
 type Tab = 'categories' | 'brands' | 'company' | 'backup';
 
-const TABS: [Tab, string][] = [
-  ['categories', 'Categories'],
-  ['brands', 'Brands'],
-  ['company', 'Company Info'],
-  ['backup', 'Backup & Restore'],
+const TABS: [Tab, string, LucideIcon][] = [
+  ['categories', 'Categories', Tag],
+  ['brands', 'Brands', Bookmark],
+  ['company', 'Company Info', Building2],
+  ['backup', 'Backup & Restore', DatabaseBackup],
 ];
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('categories');
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
-      <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-ink tracking-tight">Settings</h1>
-        <p className="text-[13px] text-ink-muted mt-0.5">Catalog taxonomy, company details, and backups.</p>
-      </div>
+    <div className="p-8 max-w-[1400px]">
+      <PageHeader title="Settings" subtitle="Catalog taxonomy, company details, and backups." />
 
-      <div className="flex gap-1 mb-6 border-b border-border">
-        {TABS.map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-4 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
-              tab === key ? 'border-accent text-accent' : 'border-transparent text-ink-muted hover:text-ink'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <div className="bg-surface border border-border rounded-md overflow-hidden grid grid-cols-[200px_1fr] min-h-[480px]">
+        <nav className="border-r border-border p-3 space-y-0.5 bg-surface-sunken/40">
+          {TABS.map(([key, label, Icon]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-left transition-colors ${
+                tab === key ? 'bg-accent-soft text-accent font-medium' : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
 
-      {tab === 'categories' && <CategoriesTab />}
-      {tab === 'brands' && <BrandsTab />}
-      {tab === 'company' && <CompanyInfoTab />}
-      {tab === 'backup' && <BackupTab />}
+        <div className="p-6">
+          {tab === 'categories' && <CategoriesTab />}
+          {tab === 'brands' && <BrandsTab />}
+          {tab === 'company' && <CompanyInfoTab />}
+          {tab === 'backup' && <BackupTab />}
+        </div>
+      </div>
     </div>
   );
 }
@@ -51,6 +53,8 @@ interface NameListItem {
 }
 
 function NameListTab({
+  title,
+  description,
   icon: Icon,
   placeholder,
   queryKey,
@@ -58,6 +62,8 @@ function NameListTab({
   create,
   del,
 }: {
+  title: string;
+  description: string;
   icon: LucideIcon;
   placeholder: string;
   queryKey: string;
@@ -116,7 +122,12 @@ function NameListTab({
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
+      <div className="mb-5">
+        <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+        <p className="text-[13px] text-ink-muted mt-0.5">{description}</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-5 max-w-md">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -128,33 +139,36 @@ function NameListTab({
         </Button>
       </form>
 
-      <div className="bg-surface border border-border rounded-md overflow-hidden">
-        {isLoading ? (
-          <TableSkeleton rows={3} cols={1} />
-        ) : data && data.length === 0 ? (
-          <EmptyState icon={Icon} title="None yet" description="Add your first entry above." />
-        ) : (
-          <ul className="divide-y divide-border">
-            {(data ?? []).map((item) => (
-              <li key={item.id} className="flex items-center justify-between px-4 py-2.5 group">
-                <span className="flex items-center gap-2 text-sm text-ink">
-                  <Icon className="w-4 h-4 text-accent" />
-                  {item.name}
+      {isLoading ? (
+        <TableSkeleton rows={3} cols={3} />
+      ) : data && data.length === 0 ? (
+        <EmptyState icon={Icon} title="None yet" description="Add your first entry above." />
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+          {(data ?? []).map((item) => (
+            <div
+              key={item.id}
+              className="group flex items-center justify-between gap-2 px-3 py-2.5 rounded-md border border-border bg-surface hover:border-border-strong transition-colors"
+            >
+              <span className="flex items-center gap-2 text-sm text-ink min-w-0">
+                <span className="shrink-0 w-7 h-7 rounded-md bg-accent-soft text-accent flex items-center justify-center">
+                  <Icon className="w-3.5 h-3.5" />
                 </span>
-                <Tooltip content={`Delete "${item.name}"`}>
-                  <button
-                    onClick={() => handleDelete(item)}
-                    aria-label={`Delete ${item.name}`}
-                    className="opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </Tooltip>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                <span className="truncate">{item.name}</span>
+              </span>
+              <Tooltip content={`Delete "${item.name}"`}>
+                <button
+                  onClick={() => handleDelete(item)}
+                  aria-label={`Delete ${item.name}`}
+                  className="shrink-0 opacity-0 group-hover:opacity-100 text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </Tooltip>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -162,6 +176,8 @@ function NameListTab({
 function CategoriesTab() {
   return (
     <NameListTab
+      title="Categories"
+      description="Group products by category for filtering and reporting."
       icon={Tag}
       placeholder="e.g. Paints & Chemicals"
       queryKey="categories"
@@ -175,6 +191,8 @@ function CategoriesTab() {
 function BrandsTab() {
   return (
     <NameListTab
+      title="Brands"
+      description="Manage the brand names available when adding a product."
       icon={Bookmark}
       placeholder="e.g. Dadex"
       queryKey="brands"
@@ -229,11 +247,12 @@ function CompanyInfoTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
+      notify('Company info saved', 'success');
     },
   });
 
   if (isLoading || !current) {
-    return <TableSkeleton rows={4} cols={1} />;
+    return <TableSkeleton rows={4} cols={2} />;
   }
 
   const PLACEHOLDERS: Record<keyof CompanyForm, string> = {
@@ -260,15 +279,25 @@ function CompanyInfoTab() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-md p-5 space-y-4 max-w-md">
-      {field('companyName', 'Company Name')}
-      {field('address', 'Address')}
-      {field('phone', 'Phone')}
-      {field('email', 'Email', 'email')}
-      <Button type="submit" variant="primary" loading={updateMutation.isPending}>
-        Save
-      </Button>
-    </form>
+    <div>
+      <div className="mb-5">
+        <h2 className="text-[15px] font-semibold text-ink">Company Info</h2>
+        <p className="text-[13px] text-ink-muted mt-0.5">
+          Shown on printed invoices, quotations, and purchase orders.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
+        {field('companyName', 'Company Name')}
+        <div className="grid grid-cols-2 gap-4">
+          {field('phone', 'Phone')}
+          {field('email', 'Email', 'email')}
+        </div>
+        {field('address', 'Address')}
+        <Button type="submit" variant="primary" loading={updateMutation.isPending}>
+          Save Changes
+        </Button>
+      </form>
+    </div>
   );
 }
 
@@ -306,28 +335,44 @@ function BackupTab() {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-md p-5 max-w-md space-y-4">
-      <div className="flex items-center gap-2 text-ink font-semibold">
-        <DatabaseBackup className="w-5 h-5 text-accent" />
-        Backup & Restore
+    <div>
+      <div className="mb-5">
+        <h2 className="text-[15px] font-semibold text-ink">Backup & Restore</h2>
+        <p className="text-[13px] text-ink-muted mt-0.5">
+          Export the entire database to a file you choose, or restore from a previously saved backup.
+        </p>
       </div>
-      <p className="text-sm text-ink-muted">
-        Export the entire database to a file you choose, or restore from a previously saved backup.
-      </p>
-      <div className="flex gap-2">
-        <Button variant="primary" className="flex-1" onClick={handleBackup} loading={working === 'backup'} disabled={working !== null}>
-          <FolderOpen className="w-4 h-4" />
-          Backup Now
-        </Button>
-        <Button
-          variant="secondary"
-          className="flex-1 text-danger hover:bg-danger-soft"
-          onClick={handleRestore}
-          loading={working === 'restore'}
-          disabled={working !== null}
-        >
-          Restore from Backup
-        </Button>
+      <div className="grid grid-cols-2 gap-4 max-w-xl">
+        <div className="rounded-md border border-border p-5 flex flex-col gap-3">
+          <div className="w-9 h-9 rounded-md bg-accent-soft text-accent flex items-center justify-center">
+            <FolderOpen className="w-[18px] h-[18px]" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">Backup Now</p>
+            <p className="text-xs text-ink-muted mt-0.5">Save a full copy of your database to a file you choose.</p>
+          </div>
+          <Button variant="primary" onClick={handleBackup} loading={working === 'backup'} disabled={working !== null}>
+            Choose Location…
+          </Button>
+        </div>
+        <div className="rounded-md border border-border p-5 flex flex-col gap-3">
+          <div className="w-9 h-9 rounded-md bg-danger-soft text-danger flex items-center justify-center">
+            <DatabaseBackup className="w-[18px] h-[18px]" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink">Restore from Backup</p>
+            <p className="text-xs text-ink-muted mt-0.5">Replace all current data with a previously saved backup file.</p>
+          </div>
+          <Button
+            variant="secondary"
+            className="text-danger hover:bg-danger-soft"
+            onClick={handleRestore}
+            loading={working === 'restore'}
+            disabled={working !== null}
+          >
+            Choose Backup File…
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -10,3 +10,4 @@ export { default as Tooltip } from './Tooltip';
 export { default as Banner } from './Banner';
 export { default as PageHeader } from './PageHeader';
 export { default as Toolbar } from './Toolbar';
+export { default as Pagination } from './Pagination';

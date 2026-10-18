@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Eye, FileText } from 'lucide-react';
 import { Quotation } from '../../../shared/types';
 import ViewQuotationDialog from './ViewQuotationDialog';
-import { Badge, EmptyState, Tooltip, PageHeader, Toolbar } from '../../components/ui';
+import { Badge, EmptyState, Tooltip, PageHeader, Toolbar, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -18,9 +18,22 @@ const STATUS_TONE: Record<string, 'neutral' | 'accent' | 'success' | 'danger'> =
   cancelled: 'danger',
 };
 
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per quotation id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
+
 export default function QuotationsPage() {
   const [search, setSearch] = useState('');
   const [viewing, setViewing] = useState<Quotation | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: quotations, isLoading } = useQuery({
     queryKey: ['quotations'],
@@ -42,6 +55,18 @@ export default function QuotationsPage() {
 
   const totalValue = useMemo(() => filtered.reduce((sum, qt) => sum + qt.total, 0), [filtered]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   return (
     <div className="p-8 max-w-[1400px]">
       <PageHeader
@@ -53,7 +78,7 @@ export default function QuotationsPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by quote #, customer, or remarks…"
           action={
             <Link
@@ -74,6 +99,7 @@ export default function QuotationsPage() {
             description={search ? 'Try a different quote number, customer, or remark.' : 'Quotations you create will show up here.'}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -87,9 +113,21 @@ export default function QuotationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((qt) => (
+                {paged.map((qt) => {
+                  const customerLabel = qt.customerName ?? 'Walk-in';
+                  const tone = AVATAR_TONES[qt.id % AVATAR_TONES.length];
+                  return (
                   <tr key={qt.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-ink">{qt.quotationNumber}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {customerLabel.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-ink">{qt.quotationNumber}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-2.5 text-ink-muted">{qt.customerName ?? '—'}</td>
                     <td className="px-4 py-2.5 text-ink-muted">{new Date(qt.createdDate).toLocaleDateString()}</td>
                     <td className="px-4 py-2.5">
@@ -112,10 +150,22 @@ export default function QuotationsPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              total={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </>
         )}
       </div>
 

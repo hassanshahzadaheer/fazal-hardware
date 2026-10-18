@@ -5,7 +5,7 @@ import { Plus, Eye, RotateCcw, Receipt } from 'lucide-react';
 import { SaleInvoice } from '../../../shared/types';
 import SaleDetailDialog from './SaleDetailDialog';
 import SaleReturnDialog from './SaleReturnDialog';
-import { Badge, EmptyState, Tooltip, PageHeader, Toolbar } from '../../components/ui';
+import { Badge, EmptyState, Tooltip, PageHeader, Toolbar, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -25,11 +25,24 @@ const STATUS_LABEL: Record<string, string> = {
   returned: 'Returned',
 };
 
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per invoice id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
+
 export default function SalesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [viewing, setViewing] = useState<SaleInvoice | null>(null);
   const [returning, setReturning] = useState<SaleInvoice | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['sales'],
@@ -51,6 +64,18 @@ export default function SalesPage() {
 
   const totalRevenue = useMemo(() => filtered.reduce((sum, inv) => sum + inv.total, 0), [filtered]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   const handleReturned = () => {
     setReturning(null);
     queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -69,7 +94,7 @@ export default function SalesPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by invoice number or customer…"
           action={
             <Link
@@ -90,7 +115,8 @@ export default function SalesPage() {
             description={search ? 'Try a different invoice number or customer.' : 'Completed sales will show up here.'}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
                 <tr>
@@ -104,10 +130,22 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((inv) => (
+                {paged.map((inv) => {
+                  const customerLabel = inv.customerName ?? 'Walk-in';
+                  const tone = AVATAR_TONES[inv.id % AVATAR_TONES.length];
+                  return (
                   <tr key={inv.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-ink">{inv.invoiceNumber}</td>
-                    <td className="px-4 py-2.5 text-ink-muted">{inv.customerName ?? 'Walk-in'}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {customerLabel.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-ink">{inv.invoiceNumber}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-ink-muted">{customerLabel}</td>
                     <td className="px-4 py-2.5 text-ink-muted">{new Date(inv.createdDate).toLocaleDateString()}</td>
                     <td className="px-4 py-2.5 text-ink tabular-nums">{formatPKR(inv.total)}</td>
                     <td className="px-4 py-2.5 text-ink-muted tabular-nums">{formatPKR(inv.paidAmount)}</td>
@@ -139,10 +177,22 @@ export default function SalesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
-          </div>
+            </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              total={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </>
         )}
       </div>
 

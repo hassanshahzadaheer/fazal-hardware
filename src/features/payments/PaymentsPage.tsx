@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowUpRight, CreditCard } from 'lucide-react';
 import { Payment } from '../../../shared/types';
-import { Badge, EmptyState, PageHeader, Toolbar } from '../../components/ui';
+import { Badge, EmptyState, PageHeader, Toolbar, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -17,8 +17,21 @@ const MODE_ICON: Record<string, string> = {
   other: '🔄',
 };
 
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per payment id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
+
 export default function PaymentsPage() {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: payments, isLoading } = useQuery({
     queryKey: ['payments'],
@@ -46,6 +59,18 @@ export default function PaymentsPage() {
       [p.partyName, p.mode].filter(Boolean).some((f) => f!.toLowerCase().includes(q))
     );
   }, [payments, search]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   return (
     <div className="p-8">
@@ -75,7 +100,7 @@ export default function PaymentsPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by party name or payment mode…"
         />
         {isLoading ? (
@@ -87,6 +112,7 @@ export default function PaymentsPage() {
             description={search ? 'Try a different party name or payment mode.' : 'Payments received or paid out will show up here.'}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -100,9 +126,20 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((p) => (
+                {paged.map((p) => {
+                  const tone = AVATAR_TONES[p.id % AVATAR_TONES.length];
+                  return (
                   <tr key={p.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-4 py-2.5 text-ink font-medium">{p.partyName ?? '—'}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {(p.partyName ?? '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-ink font-medium truncate">{p.partyName ?? '—'}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-2.5 text-ink-muted capitalize">{p.partyType}</td>
                     <td className="px-4 py-2.5">
                       <Badge tone={p.direction === 'received' ? 'success' : 'danger'}>
@@ -127,10 +164,22 @@ export default function PaymentsPage() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+          </>
         )}
       </div>
     </div>

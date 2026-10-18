@@ -15,8 +15,8 @@ import {
   HandCoins,
   BarChart3,
   Settings as SettingsIcon,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Tooltip } from '../ui';
 import UserMenu from './UserMenu';
@@ -133,7 +133,7 @@ export default function Sidebar() {
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className="w-full flex items-center justify-center py-[7px] rounded-md text-white/35 hover:bg-shell-raised/60 hover:text-white/80 transition-colors"
           >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
         </Tooltip>
       </div>

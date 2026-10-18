@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, TrendingDown } from 'lucide-react';
 import { Expense } from '../../../shared/types';
 import { EXPENSE_HEADS, EXPENSE_PAYMENT_MODES } from '../../../shared/constants';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, PageHeader, Select, Toolbar, Tooltip } from '../../components/ui';
+import { Badge, Button, confirmDialog, EmptyState, Field, Input, Modal, PageHeader, Pagination, Select, Toolbar, Tooltip } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -15,12 +15,25 @@ function currentMonth(): string {
   return new Date().toISOString().slice(0, 7); // YYYY-MM
 }
 
+// A small rotating palette gives each row a tiny bit of visual identity —
+// deterministic per expense id, not random, so it doesn't reshuffle on
+// every re-render/refetch.
+const AVATAR_TONES = [
+  'bg-accent-soft text-accent',
+  'bg-success-soft text-success',
+  'bg-warning-soft text-warning',
+  'bg-danger-soft text-danger',
+  'bg-surface-sunken text-ink-muted',
+];
+
 export default function ExpensesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterMonth, setFilterMonth] = useState(currentMonth());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses'],
@@ -68,6 +81,23 @@ export default function ExpensesPage() {
       .map(([head, amount]) => ({ head, amount, pct: monthTotal ? Math.round((amount / monthTotal) * 100) : 0 }));
   }, [filtered, monthTotal]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleMonthChange = (value: string) => {
+    setFilterMonth(value);
+    setPage(1);
+  };
+
   const openCreate = () => {
     setEditing(null);
     setDialogOpen(true);
@@ -111,13 +141,13 @@ export default function ExpensesPage() {
       <div className="bg-surface border border-border rounded-md overflow-hidden">
         <Toolbar
           searchValue={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           searchPlaceholder="Search by head, description, or reference…"
           filters={
             <Input
               type="month"
               value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
+              onChange={(e) => handleMonthChange(e.target.value)}
               className="w-auto"
             />
           }
@@ -138,6 +168,7 @@ export default function ExpensesPage() {
             action={<Button variant="primary" onClick={openCreate}><Plus className="w-4 h-4" />Add Expense</Button>}
           />
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
@@ -152,9 +183,20 @@ export default function ExpensesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((e) => (
+                {paged.map((e) => {
+                  const tone = AVATAR_TONES[e.id % AVATAR_TONES.length];
+                  return (
                   <tr key={e.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-4 py-2.5 text-ink-muted">{e.date}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                        >
+                          {e.expenseHead.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-ink-muted">{e.date}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-2.5">
                       <Badge tone="accent">{e.expenseHead}</Badge>
                     </td>
@@ -185,10 +227,22 @@ export default function ExpensesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+            <Pagination
+              page={safePage}
+              pageSize={pageSize}
+              total={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </>
         )}
       </div>
 
