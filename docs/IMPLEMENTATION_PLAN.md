@@ -16,28 +16,30 @@ Rebuild Fazal Hardware as an offline-first Electron desktop app: React 18 + Vite
 
 ## Phase 0: Reset to Boilerplate — DONE
 
-- [x] Removed legacy root docs (`PRD.md`, `IMPLEMENTATION_GUIDE.md`, `EXECUTIVE_SUMMARY.md`, `DELIVERY_SUMMARY.md`, `QUICK_START.md`, `00_START_HERE.md`) — described the old sync-based architecture.
-- [x] Removed `_data/` (legacy Oracle CSV export) entirely, per your call not to migrate historical data.
-- [x] Removed `src/features/`, `src/stores/`, `src/hooks/`, `electron/handlers/` — old Products/Dashboard/Login pages and role model tied to the old schema.
-- [x] Removed old migrations `0001`–`0005` (sync infrastructure, audit log) — empty `electron/db/migrations/` kept via `.gitkeep`.
-- [x] Removed old DB test (asserted old tables: `cities`, `party_ledger`, `sync_queue`), old seed script/verify-seed tied to Oracle sample data.
-- [x] Reset `shared/types`, `shared/schemas`, `shared/constants`, `electron/preload.ts`, `src/global.d.ts`, `electron/main.ts`, `src/App.tsx` to minimal stubs — kept `Result<T>`, window creation, DB init, a single `app:getVersion` IPC round-trip to prove the shell boots.
-- [x] Verified: `npx tsc --noEmit` clean, `npm test` passes (1 test — the still-valid SQLite-syntax check), `npx vite build` succeeds.
-- **Not yet committed** — changes are staged (`git status`) for your review before committing.
+- [x] ~~Removed legacy root docs (`PRD.md`, `IMPLEMENTATION_GUIDE.md`, `EXECUTIVE_SUMMARY.md`, `DELIVERY_SUMMARY.md`, `QUICK_START.md`, `00_START_HERE.md`) — described the old sync-based architecture.~~
+- [x] ~~Removed `_data/` (legacy Oracle CSV export) entirely, per your call not to migrate historical data.~~
+- [x] ~~Removed `src/features/`, `src/stores/`, `src/hooks/`, `electron/handlers/` — old Products/Dashboard/Login pages and role model tied to the old schema.~~
+- [x] ~~Removed old migrations `0001`–`0005` (sync infrastructure, audit log) — empty `electron/db/migrations/` kept via `.gitkeep`.~~
+- [x] ~~Removed old DB test (asserted old tables: `cities`, `party_ledger`, `sync_queue`), old seed script/verify-seed tied to Oracle sample data.~~
+- [x] ~~Reset `shared/types`, `shared/schemas`, `shared/constants`, `electron/preload.ts`, `src/global.d.ts`, `electron/main.ts`, `src/App.tsx` to minimal stubs — kept `Result<T>`, window creation, DB init, a single `app:getVersion` IPC round-trip to prove the shell boots.~~
+- [x] ~~Verified: `npx tsc --noEmit` clean, `npm test` passes (1 test — the still-valid SQLite-syntax check), `npx vite build` succeeds.~~
+- **Committed** across 3 commits: `38b8b26d` (reset), `35c3f9c3` (this plan doc), `2b4e0377`+ (Phase 1 tasks below).
 
 ## Phase 1: Foundation — Schema, Contracts, Local Auth
 
-- [x] **Task 1.1** — Write `0001_init.sql`: tables for all 12 PRD entities (§4.2–§4.13: `products`, `categories`, `brands`, `customers`, `suppliers`, `sale_invoices`, `purchase_orders`, `quotations`, `expenses`, `stock_movements`, `payments`, `users`), plus two sequence tables for invoice/PO/quotation numbering, **plus a single-row `settings` table** (company_name, address, phone, email — used by print templates per the resolved Open Question below; not in the PRD's entity list because the PRD assumes "Fazal Hardware" is hardcoded, but one table is cheaper than string-replacing every print template later).
-  - Acceptance: fresh DB boot creates all 13 tables; `settings` seeded with one row defaulting to `company_name = 'Fazal Hardware'`; foreign keys enforced (`PRAGMA foreign_keys`); enum-like fields stored as `TEXT` with app-level validation via zod.
-  - Verify: extend `electron/db/__tests__/db.test.ts` (recreate it) to assert `sqlite_master` contains every table name, including `settings`.
+- [x] ~~**Task 1.1** — Write `0001_init.sql`: tables for all 12 PRD entities (§4.2–§4.13: `products`, `categories`, `brands`, `customers`, `suppliers`, `sale_invoices`, `purchase_orders`, `quotations`, `expenses`, `stock_movements`, `payments`, `users`), plus two sequence tables for invoice/PO/quotation numbering, **plus a single-row `settings` table** (company_name, address, phone, email — used by print templates per the resolved Open Question below; not in the PRD's entity list because the PRD assumes "Fazal Hardware" is hardcoded, but one table is cheaper than string-replacing every print template later).~~
+  - ~~Acceptance: fresh DB boot creates all 13 tables; `settings` seeded with one row defaulting to `company_name = 'Fazal Hardware'`; foreign keys enforced (`PRAGMA foreign_keys`); enum-like fields stored as `TEXT` with app-level validation via zod.~~
+  - ~~Verify: extend `electron/db/__tests__/db.test.ts` (recreate it) to assert `sqlite_master` contains every table name, including `settings`.~~
   - Dependencies: None.
   - Files: `electron/db/migrations/0001_init.sql`, `electron/db/__tests__/db.test.ts`.
+  - **Done** (commit `2b4e0377`): built one generic `doc_sequences` counter table (keyed by doc type) instead of the two sequence tables described above — same effect, less schema; flagged to you at the time. 6/6 tests passing, `tsc --noEmit` clean, `vite build` succeeds.
 
-- [ ] **Task 1.2** — Define `shared/types` and `shared/schemas` for all 12 entities (TS interfaces + zod create/update schemas), matching PRD field lists exactly (incl. `variant_attributes` JSON, `purchase_unit_factor`, enums for `base_unit`/`payment_mode`/`status`/etc.).
-  - Acceptance: every entity has a type + a zod schema; `npx tsc --noEmit` clean.
-  - Verify: typecheck; one unit test per schema confirming a valid/invalid payload.
+- [x] ~~**Task 1.2** — Define `shared/types` and `shared/schemas` for all 12 entities (TS interfaces + zod create/update schemas), matching PRD field lists exactly (incl. `variant_attributes` JSON, `purchase_unit_factor`, enums for `base_unit`/`payment_mode`/`status`/etc.).~~
+  - ~~Acceptance: every entity has a type + a zod schema; `npx tsc --noEmit` clean.~~
+  - ~~Verify: typecheck; one unit test per schema confirming a valid/invalid payload.~~
   - Dependencies: 1.1.
   - Files: `shared/types/index.ts`, `shared/schemas/index.ts`.
+  - **Done** (commit `ba527395`): IDs typed as `number` (SQLite autoincrement), not the PRD's illustrative `string` (a Mongo-era assumption from the old Base44 backend) — flagging since it's a deliberate deviation worth knowing about if you cross-reference the PRD directly. Types are camelCase; DB columns stay snake_case, mapped in handlers starting Phase 2. 20/20 tests passing (TDD: wrote `shared/schemas/__tests__/schemas.test.ts` first, confirmed 14/14 RED, then GREEN), `tsc --noEmit` clean, `vite build` succeeds.
 
 - [ ] **Task 1.3** — Local auth: seed one admin user on first run (bcrypt hash), `auth:login`/`auth:logout`/`auth:getCurrentUser` IPC, `LoginPage`, session kept in a small Zustand store (or React Query cache — decide during implementation per Architecture Decisions above), protected-route wrapper in `App.tsx`. **Ships admin-only** (resolved Open Question below) — the `users.role` column still exists (so later roles don't require a migration), but every route/action is gated on "is logged in," not on role. No permission matrix is built now.
   - Acceptance: app launches to `/login` when logged out; valid admin credentials reach a protected shell; invalid credentials show an error; session persists across reload (no token expiry, per PRD §20.2); there is no role-based route restriction yet.
