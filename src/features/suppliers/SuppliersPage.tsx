@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, X, BookOpenText } from 'lucide-react';
 import { Supplier } from '../../../shared/types';
 import LedgerDialog from '../ledger/LedgerDialog';
+import { notify } from '../../components/shared/NotificationProvider';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -29,7 +30,11 @@ export default function SuppliersPage() {
       const res = await window.api.suppliers.delete(id);
       if (!res.ok) throw new Error(res.error.message);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['suppliers'] }),
+    onSuccess: () => {
+      notify('Supplier deleted', 'info');
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
   });
 
   const filtered = useMemo(() => {
@@ -195,8 +200,10 @@ function SupplierFormDialog({
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify(supplier ? 'Supplier updated' : 'Supplier added', 'success');
     onSaved();
   };
 

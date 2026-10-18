@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { BASE_UNITS } from '../../../shared/constants';
 import { ProductWithNames } from '../../../shared/types';
 import { parseVariantText, stringifyVariant } from './variantAttributes';
+import { notify } from '../../components/shared/NotificationProvider';
 
 interface Props {
   open: boolean;
@@ -131,8 +132,10 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify(product ? 'Product updated' : 'Product added', 'success');
     onSaved();
   };
 

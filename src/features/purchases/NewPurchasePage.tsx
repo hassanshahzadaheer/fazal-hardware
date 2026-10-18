@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { ProductWithNames, Supplier, PurchaseLineItem } from '../../../shared/types';
+import { notify } from '../../components/shared/NotificationProvider';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -114,8 +115,10 @@ export default function NewPurchasePage() {
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify(`Purchase recorded — ${formatPKR(total)}`, 'success');
     navigate('/purchases');
   };
 

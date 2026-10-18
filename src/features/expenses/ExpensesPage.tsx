@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { Expense } from '../../../shared/types';
 import { EXPENSE_HEADS, EXPENSE_PAYMENT_MODES } from '../../../shared/constants';
+import { notify } from '../../components/shared/NotificationProvider';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -33,7 +34,11 @@ export default function ExpensesPage() {
       const res = await window.api.expenses.delete(id);
       if (!res.ok) throw new Error(res.error.message);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+    onSuccess: () => {
+      notify('Expense deleted', 'info');
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
   });
 
   const filtered = useMemo(() => {
@@ -221,8 +226,10 @@ function ExpenseFormDialog({
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify(expense ? 'Expense updated' : 'Expense added', 'success');
     onSaved();
   };
 

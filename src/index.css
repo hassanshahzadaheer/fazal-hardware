@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +8,21 @@
   body {
     @apply font-sans bg-[#F7F8FA] text-[#111827];
   }
+}
+
+/* §24.3 toast slide-in */
+@keyframes toast-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
 }
 
 /* Custom Scrollbar */

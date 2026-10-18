@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { ProductWithNames, Customer, LineItem, Quotation } from '../../../shared/types';
 import { calcLineTotal } from './lineTotal';
+import { notify } from '../../components/shared/NotificationProvider';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -136,8 +137,10 @@ export default function NewSalePage() {
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify(`Sale completed — ${formatPKR(total)}`, 'success');
     navigate('/sales');
   };
 

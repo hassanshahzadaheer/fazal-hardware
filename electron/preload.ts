@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData } from '../shared/types';
 
 // IPC surface will grow here module-by-module per docs/Fazal_Hardware_PRD.md.
 contextBridge.exposeInMainWorld('api', {
@@ -82,5 +82,24 @@ contextBridge.exposeInMainWorld('api', {
     update: (id: number, payload: unknown): Promise<Result<Expense>> =>
       ipcRenderer.invoke('expenses:update', { id, payload }),
     delete: (id: number): Promise<Result<null>> => ipcRenderer.invoke('expenses:delete', id),
+  },
+  reports: {
+    summary: (): Promise<Result<ReportSummary>> => ipcRenderer.invoke('reports:summary'),
+    salesByDay: (days?: number): Promise<Result<SalesByDay[]>> => ipcRenderer.invoke('reports:salesByDay', days),
+    topProducts: (): Promise<Result<TopProduct[]>> => ipcRenderer.invoke('reports:topProducts'),
+    lowStock: (): Promise<Result<LowStockRow[]>> => ipcRenderer.invoke('reports:lowStock'),
+    receivables: (): Promise<Result<BalanceRow[]>> => ipcRenderer.invoke('reports:receivables'),
+    payables: (): Promise<Result<BalanceRow[]>> => ipcRenderer.invoke('reports:payables'),
+  },
+  aiScanner: {
+    selectFile: (): Promise<Result<string | null>> => ipcRenderer.invoke('ai:selectFile'),
+    scan: (filePath: string): Promise<Result<ExtractedInvoice>> => ipcRenderer.invoke('ai:scan', filePath),
+  },
+  dashboard: {
+    get: (): Promise<Result<DashboardData>> => ipcRenderer.invoke('dashboard:get'),
+  },
+  backup: {
+    now: (): Promise<Result<string>> => ipcRenderer.invoke('backup:now'),
+    restore: (): Promise<Result<null>> => ipcRenderer.invoke('backup:restore'),
   },
 });

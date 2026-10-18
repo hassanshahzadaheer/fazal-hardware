@@ -73,6 +73,25 @@ declare global {
         update(id: number, payload: unknown): Promise<any>;
         delete(id: number): Promise<any>;
       };
+      reports: {
+        summary(): Promise<any>;
+        salesByDay(days?: number): Promise<any>;
+        topProducts(): Promise<any>;
+        lowStock(): Promise<any>;
+        receivables(): Promise<any>;
+        payables(): Promise<any>;
+      };
+      aiScanner: {
+        selectFile(): Promise<any>;
+        scan(filePath: string): Promise<any>;
+      };
+      dashboard: {
+        get(): Promise<any>;
+      };
+      backup: {
+        now(): Promise<any>;
+        restore(): Promise<any>;
+      };
     };
   }
 }

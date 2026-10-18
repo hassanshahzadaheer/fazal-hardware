@@ -215,6 +215,72 @@ export interface Payment {
   createdById: number | null;
 }
 
+// Report aggregation shapes (§17), computed server-side in electron/handlers/reports.ts.
+export interface ReportSummary {
+  totalRevenue: number;
+  totalCost: number;
+  grossProfit: number;
+  stockValue: number;
+  lowStockCount: number;
+  totalReceivable: number;
+  totalPayable: number;
+}
+
+export interface SalesByDay {
+  date: string;
+  revenue: number;
+}
+
+export interface TopProduct {
+  productId: number;
+  productName: string;
+  qtySold: number;
+  revenue: number;
+}
+
+export interface LowStockRow {
+  id: number;
+  name: string;
+  stockOnHand: number;
+  reorderLevel: number;
+  deficit: number;
+}
+
+export interface BalanceRow {
+  id: number;
+  name: string;
+  phone: string | null;
+  balance: number;
+}
+
+// §18: AI Invoice Scanner — structured extraction from a supplier invoice image.
+export interface ExtractedInvoiceLineItem {
+  description: string;
+  quantity: number;
+  unit: string;
+  rate: number;
+  amount: number;
+}
+
+export interface ExtractedInvoice {
+  supplierName: string | null;
+  invoiceDate: string | null;
+  notes: string | null;
+  lineItems: ExtractedInvoiceLineItem[];
+  total: number | null;
+}
+
+// §6: Dashboard aggregate, computed server-side in electron/handlers/dashboard.ts.
+export interface DashboardData {
+  todayRevenue: number;
+  stockValue: number;
+  totalReceivable: number;
+  totalPayable: number;
+  lowStockCount: number;
+  lowStockProducts: { id: number; name: string; stockOnHand: number; reorderLevel: number }[];
+  recentSales: SaleInvoice[];
+}
+
 export interface User {
   id: number;
   email: string;

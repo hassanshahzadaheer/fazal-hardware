@@ -1,13 +1,15 @@
 import { useState, FormEvent, ComponentType } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tag, Bookmark, Trash2 } from 'lucide-react';
+import { Tag, Bookmark, Trash2, DatabaseBackup } from 'lucide-react';
+import { notify } from '../../components/shared/NotificationProvider';
 
-type Tab = 'categories' | 'brands' | 'company';
+type Tab = 'categories' | 'brands' | 'company' | 'backup';
 
 const TABS: [Tab, string][] = [
   ['categories', 'Categories'],
   ['brands', 'Brands'],
   ['company', 'Company Info'],
+  ['backup', 'Backup & Restore'],
 ];
 
 export default function SettingsPage() {
@@ -36,6 +38,7 @@ export default function SettingsPage() {
       {tab === 'categories' && <CategoriesTab />}
       {tab === 'brands' && <BrandsTab />}
       {tab === 'company' && <CompanyInfoTab />}
+      {tab === 'backup' && <BackupTab />}
     </div>
   );
 }
@@ -255,5 +258,63 @@ function CompanyInfoTab() {
         {updateMutation.isPending ? 'Saving…' : 'Save'}
       </button>
     </form>
+  );
+}
+
+function BackupTab() {
+  const [working, setWorking] = useState<'backup' | 'restore' | null>(null);
+
+  const handleBackup = async () => {
+    setWorking('backup');
+    const res = await window.api.backup.now();
+    setWorking(null);
+    if (!res.ok) {
+      if (res.error.code !== 'CANCELLED') notify(res.error.message, 'error');
+      return;
+    }
+    notify(`Backup saved to ${res.data}`, 'success');
+  };
+
+  const handleRestore = async () => {
+    if (!confirm('Restoring will replace all current data with the backup file. This cannot be undone. Continue?')) {
+      return;
+    }
+    setWorking('restore');
+    const res = await window.api.backup.restore();
+    setWorking(null);
+    if (!res.ok) {
+      if (res.error.code !== 'CANCELLED') notify(res.error.message, 'error');
+      return;
+    }
+    notify('Database restored. Reloading…', 'success');
+    setTimeout(() => window.location.reload(), 1200);
+  };
+
+  return (
+    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 max-w-md space-y-4">
+      <div className="flex items-center gap-2 text-[#111827] font-semibold">
+        <DatabaseBackup className="w-5 h-5 text-[#1F6B3B]" />
+        Backup & Restore
+      </div>
+      <p className="text-sm text-[#6B7280]">
+        Export the entire database to a file you choose, or restore from a previously saved backup.
+      </p>
+      <div className="flex gap-2">
+        <button
+          onClick={handleBackup}
+          disabled={working !== null}
+          className="flex-1 py-2 rounded-lg bg-[#1F6B3B] text-white text-sm font-semibold hover:bg-[#17522D] disabled:opacity-60"
+        >
+          {working === 'backup' ? 'Saving…' : 'Backup Now'}
+        </button>
+        <button
+          onClick={handleRestore}
+          disabled={working !== null}
+          className="flex-1 py-2 rounded-lg border border-[#E5E7EB] text-rose-600 text-sm font-semibold hover:bg-rose-50 disabled:opacity-60"
+        >
+          {working === 'restore' ? 'Restoring…' : 'Restore from Backup'}
+        </button>
+      </div>
+    </div>
   );
 }

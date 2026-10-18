@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './stores/authStore';
+import Sidebar from './components/layout/Sidebar';
+import { NotificationProvider } from './components/shared/NotificationProvider';
 import LoginPage from './features/auth/LoginPage';
+import DashboardPage from './features/dashboard/DashboardPage';
 import SettingsPage from './features/settings/SettingsPage';
 import ProductsPage from './features/products/ProductsPage';
 import CustomersPage from './features/customers/CustomersPage';
@@ -17,6 +20,8 @@ import CreditAccountsPage from './features/credit-accounts/CreditAccountsPage';
 import QuotationsPage from './features/quotations/QuotationsPage';
 import NewQuotationPage from './features/quotations/NewQuotationPage';
 import ExpensesPage from './features/expenses/ExpensesPage';
+import ReportsPage from './features/reports/ReportsPage';
+import AIScannerPage from './features/ai-scanner/AIScannerPage';
 
 const queryClient = new QueryClient();
 
@@ -42,81 +47,14 @@ function RequireGuest({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Minimal nav — a real sidebar (§5.1-§5.2 of the PRD) is Phase 12 scope.
-// This exists so pages landing in Phase 2+ are reachable for manual testing.
+// §5.1-§5.2: collapsible sidebar + main content area, no top bar.
 function ProtectedShell() {
-  const { user, logout } = useAuthStore();
-
   return (
-    <div className="min-h-screen bg-[#F7F8FA] font-sans">
-      <header className="bg-white border-b border-[#E5E7EB] px-6 h-14 flex items-center justify-between">
-        <nav className="flex items-center gap-5 text-sm">
-          <Link to="/" className="font-bold text-[#111827]">
-            Fazal Hardware
-          </Link>
-          <Link to="/products" className="text-[#6B7280] hover:text-[#111827]">
-            Products
-          </Link>
-          <Link to="/stock" className="text-[#6B7280] hover:text-[#111827]">
-            Stock
-          </Link>
-          <Link to="/sales" className="text-[#6B7280] hover:text-[#111827]">
-            Sales
-          </Link>
-          <Link to="/purchases" className="text-[#6B7280] hover:text-[#111827]">
-            Purchases
-          </Link>
-          <Link to="/payments" className="text-[#6B7280] hover:text-[#111827]">
-            Payments
-          </Link>
-          <Link to="/credit-accounts" className="text-[#6B7280] hover:text-[#111827]">
-            Credit Accounts
-          </Link>
-          <Link to="/quotations" className="text-[#6B7280] hover:text-[#111827]">
-            Quotations
-          </Link>
-          <Link to="/expenses" className="text-[#6B7280] hover:text-[#111827]">
-            Expenses
-          </Link>
-          <Link to="/customers" className="text-[#6B7280] hover:text-[#111827]">
-            Customers
-          </Link>
-          <Link to="/suppliers" className="text-[#6B7280] hover:text-[#111827]">
-            Suppliers
-          </Link>
-          <Link to="/settings" className="text-[#6B7280] hover:text-[#111827]">
-            Settings
-          </Link>
-        </nav>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-[#6B7280]">{user?.email}</span>
-          <button onClick={() => logout()} className="text-rose-600 hover:text-rose-700 font-medium">
-            Sign out
-          </button>
-        </div>
-      </header>
-      <main>
+    <div className="min-h-screen flex bg-[#F7F8FA] font-sans">
+      <Sidebar />
+      <main className="flex-1 min-w-0 overflow-x-auto">
         <Outlet />
       </main>
-    </div>
-  );
-}
-
-function HomePlaceholder() {
-  const [version, setVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    window.api.app.getVersion().then((res: any) => {
-      if (res.ok) setVersion(res.data);
-    });
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center justify-center text-center gap-2 py-24">
-      <h1 className="text-2xl font-bold text-[#111827]">Fazal Hardware</h1>
-      <p className="text-sm text-[#6B7280]">
-        v{version ?? '…'}. Modules land per docs/IMPLEMENTATION_PLAN.md.
-      </p>
     </div>
   );
 }
@@ -147,7 +85,7 @@ function MainAppContent() {
             </RequireAuth>
           }
         >
-          <Route index element={<HomePlaceholder />} />
+          <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="stock" element={<StockPage />} />
           <Route path="sales" element={<SalesPage />} />
@@ -159,6 +97,8 @@ function MainAppContent() {
           <Route path="quotations" element={<QuotationsPage />} />
           <Route path="quotations/new" element={<NewQuotationPage />} />
           <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="ai-scanner" element={<AIScannerPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route path="settings" element={<SettingsPage />} />
@@ -200,7 +140,9 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MainAppContent />
+      <NotificationProvider>
+        <MainAppContent />
+      </NotificationProvider>
     </QueryClientProvider>
   );
 }

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
 import ProductFormDialog from './ProductFormDialog';
+import { notify } from '../../components/shared/NotificationProvider';
 
 function formatPKR(amount: number | null): string {
   if (amount === null) return '—';
@@ -35,7 +36,11 @@ export default function ProductsPage() {
       const res = await window.api.products.delete(id);
       if (!res.ok) throw new Error(res.error.message);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => {
+      notify('Product deleted', 'info');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
   });
 
   const filtered = useMemo(() => {

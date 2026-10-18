@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
+import { notify } from '../../components/shared/NotificationProvider';
 
 interface Props {
   product: ProductWithNames;
@@ -39,8 +40,10 @@ export default function StockAdjustDialog({ product, onClose, onSaved }: Props) 
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify('Stock adjusted', 'success');
     onSaved();
   };
 

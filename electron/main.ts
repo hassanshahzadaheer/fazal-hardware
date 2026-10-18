@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
 import log from 'electron-log';
 import { initDb, closeDb, getDb } from './db';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData } from '../shared/types';
 import { login } from './handlers/auth';
 import * as categoriesHandler from './handlers/categories';
 import * as brandsHandler from './handlers/brands';
@@ -16,6 +17,23 @@ import * as purchasesHandler from './handlers/purchases';
 import * as paymentsHandler from './handlers/payments';
 import * as quotationsHandler from './handlers/quotations';
 import * as expensesHandler from './handlers/expenses';
+import * as reportsHandler from './handlers/reports';
+import { scanInvoice } from './handlers/aiScanner';
+import { getDashboard } from './handlers/dashboard';
+import { backupNow, restoreBackup } from './handlers/backup';
+import { autoUpdater } from 'electron-updater';
+
+// Loads GEMINI_API_KEY (Task 10.x, AI Scanner) from a local .env file — never
+// bundled or committed. In dev this picks up a .env at the repo root; in a
+// packaged build there is no repo root, so it also checks the per-user data
+// folder, letting an installed app pick up a key the user drops there
+// themselves without rebuilding.
+dotenv.config({ path: path.join(__dirname, '../.env') });
+try {
+  dotenv.config({ path: path.join(app.getPath('userData'), '.env'), override: false });
+} catch {
+  // app.getPath is unavailable outside a real Electron runtime; harmless here.
+}
 
 log.initialize();
 log.info('Starting Fazal Hardware...');
@@ -73,6 +91,17 @@ app.on('ready', () => {
   } catch (err) {
     log.error('Database initialization failed:', err);
     app.quit();
+    return;
+  }
+
+  // §25.5: check for updates on launch, download in background, prompt to
+  // install. Only in packaged builds — dev mode has no update server and
+  // electron-updater logs noisy "update server not configured" errors otherwise.
+  if (app.isPackaged) {
+    autoUpdater.logger = log;
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      log.warn('Auto-update check failed:', err);
+    });
   }
 });
 
@@ -267,4 +296,56 @@ ipcMain.handle('expenses:update', async (_event, { id, payload }): Promise<Resul
 
 ipcMain.handle('expenses:delete', async (_event, id): Promise<Result<null>> => {
   return expensesHandler.remove(getDb(), id);
+});
+
+ipcMain.handle('reports:summary', async (): Promise<Result<ReportSummary>> => {
+  return reportsHandler.getSummary(getDb());
+});
+
+ipcMain.handle('reports:salesByDay', async (_event, days): Promise<Result<SalesByDay[]>> => {
+  return reportsHandler.getSalesByDay(getDb(), days ?? 7);
+});
+
+ipcMain.handle('reports:topProducts', async (): Promise<Result<TopProduct[]>> => {
+  return reportsHandler.getTopProducts(getDb());
+});
+
+ipcMain.handle('reports:lowStock', async (): Promise<Result<LowStockRow[]>> => {
+  return reportsHandler.getLowStock(getDb());
+});
+
+ipcMain.handle('reports:receivables', async (): Promise<Result<BalanceRow[]>> => {
+  return reportsHandler.getReceivables(getDb());
+});
+
+ipcMain.handle('reports:payables', async (): Promise<Result<BalanceRow[]>> => {
+  return reportsHandler.getPayables(getDb());
+});
+
+ipcMain.handle('ai:selectFile', async (): Promise<Result<string | null>> => {
+  if (!mainWindow) return { ok: true, data: null };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'Invoice Image', extensions: ['jpg', 'jpeg', 'png', 'pdf'] }],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { ok: true, data: null };
+  }
+  return { ok: true, data: result.filePaths[0] };
+});
+
+ipcMain.handle('ai:scan', async (_event, filePath): Promise<Result<ExtractedInvoice>> => {
+  return scanInvoice(filePath);
+});
+
+ipcMain.handle('dashboard:get', async (): Promise<Result<DashboardData>> => {
+  return getDashboard(getDb());
+});
+
+ipcMain.handle('backup:now', async (): Promise<Result<string>> => {
+  return backupNow();
+});
+
+ipcMain.handle('backup:restore', async (): Promise<Result<null>> => {
+  return restoreBackup();
 });

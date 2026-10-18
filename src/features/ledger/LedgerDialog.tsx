@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { Payment } from '../../../shared/types';
+import { notify } from '../../components/shared/NotificationProvider';
 
 interface Props {
   partyType: 'customer' | 'supplier';
@@ -52,6 +53,7 @@ export default function LedgerDialog({ partyType, partyId, partyName, balance, o
       return res.data;
     },
     onSuccess: () => {
+      notify(partyType === 'customer' ? 'Payment received' : 'Payment recorded', 'success');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: [partyType === 'customer' ? 'customers' : 'suppliers'] });
       setShowForm(false);
@@ -59,7 +61,10 @@ export default function LedgerDialog({ partyType, partyId, partyName, balance, o
       setNotes('');
       setError(null);
     },
-    onError: (err: any) => setError(err.message),
+    onError: (err: any) => {
+      setError(err.message);
+      notify(err.message, 'error');
+    },
   });
 
   return (

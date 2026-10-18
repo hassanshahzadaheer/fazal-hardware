@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, X, BookOpenText } from 'lucide-react';
 import { Customer } from '../../../shared/types';
 import { CUSTOMER_TYPES, CustomerType } from '../../../shared/constants';
 import LedgerDialog from '../ledger/LedgerDialog';
+import { notify } from '../../components/shared/NotificationProvider';
 
 function formatPKR(amount: number): string {
   return `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
@@ -36,7 +37,11 @@ export default function CustomersPage() {
       const res = await window.api.customers.delete(id);
       if (!res.ok) throw new Error(res.error.message);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
+    onSuccess: () => {
+      notify('Customer deleted', 'info');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (err: Error) => notify(err.message, 'error'),
   });
 
   const filtered = useMemo(() => {
@@ -215,8 +220,10 @@ function CustomerFormDialog({
     setSubmitting(false);
     if (!res.ok) {
       setError(res.error.message);
+      notify(res.error.message, 'error');
       return;
     }
+    notify(customer ? 'Customer updated' : 'Customer added', 'success');
     onSaved();
   };
 
