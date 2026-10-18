@@ -1,51 +1,0 @@
-USERID,ID,OPTIONNAME,PATH
-,Â,     System Security,frm_menuoptions
-,Â!,     Backup,frm_backup
-,ÂB,     Product Analysis Report,rpt_frm_prodanalysis
-,Â,                                 L I B R A R I E S,
-,Â,     Company,frm_company
-,Â,     Product,frm_product
-,Â,     Category / Brand,frm_category
-,Â,     Customer,frm_customer
-,Â,     City,frm_city
-,Â	,     Delivery Man,frm_delman
-,"Â
-",     Create User,frm_user
-,Â,     Sale Return,frm_issue_return
-,Â,     Customer Payment,FRM_CUSTOMER_PAYMENT
-,Â,     Purchase,FRM_RECEIPT_MASTER2
-,Â,     Price Increase,rpt_frm_priceinc
-,Â6,     Product Ledger,rpt_frm_prodledger
-,Â:,     Customer Balances,rpt_frm_custbalance
-,Â=,     Invoice wise Sale (W/O Value),rpt_frm_invsale2
-,ÂA,     Customer Sale (Invoice Wise),rpt_frm_custsale2
-,Â,     Purchase Return,FRM_RECEIPT_RETURN
-,Â,     PO,FRM_PORDER_MASTER
-,Â,     Edit/Update Pur Price/Sale Price,frm_product_price
-,Â,                       T R A N S A C T I O N S,
-,Â3,                                     R E P O R T S,
-,Â,     Color / Model,frm_color
-,Â,     Sale,FRM_ISSUE
-,Â,     Supplier Payment,FRM_VENDOR_PAYMENT
-,Â,     Update New Price,rpt_frm_updatenewpric
-,Â4,     Closing Stock,rpt_frm_clsstock
-,Â5,     Pending Order List,rpt_frm_pendorder
-,Â7,     Supplier Ledger,rpt_frm_suppledger
-,Â8,     Supplier Balances,rpt_frm_suppbalance
-,Â9,     Customer Ledger / Ageing,rpt_frm_custledger
-,Â;,     Product wise Sale Summary,rpt_frm_prodsale
-,Â<,     Invoice wise Sale (With Value),rpt_frm_invsale1
-,Â>,     Purchase Report,rpt_frm_purreport
-,Â?,     Reorder Report,rpt_frm_reorder
-,Â@,     Customer wise Sale (Summary),rpt_frm_custsale1
-,Â9,     Customer Payments,rpt_frm_custpayment
-,Â	3,     Carpenters,frm_carpenter
-,ÂA,     Summary Reports,rpt_frm_mgt
-,Â4,     Daily Transactions Summary,rpt_frm_daily
-,Â,     Quotation,frm_quot
-,Â3,     Expense Heads,frm_expheads
-,Â ,     Daily Expenses,frm_expenses
-,ÂC,     Daily Expenses Report,rpt_frm_expenses
-,"Â""3",     Period Closing,frm_rpt_closingpass
-,Â#3,     Backup Files,frm_backupfiles
-,ÂA,     User wise Sales Report,rpt_frm_usersale

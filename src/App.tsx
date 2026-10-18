@@ -1,185 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuthStore } from './stores/authStore';
-import { useIdleTimer } from './hooks/useIdleTimer';
-import Layout from './app/layout';
-import LoginPage from './features/auth/LoginPage';
-import DashboardPage from './features/dashboard/DashboardPage';
-import ProductsPage from './features/products/ProductsPage';
-import { Role } from '../shared/constants';
 
 const queryClient = new QueryClient();
 
-// Route guard for protected routes
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuthStore();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
-        <div className="w-8 h-8 border-4 border-[#1F6B3B]/30 border-t-[#1F6B3B] rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-// Route guard for guest routes (login)
-function RequireGuest({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuthStore();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
-        <div className="w-8 h-8 border-4 border-[#1F6B3B]/30 border-t-[#1F6B3B] rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-// Route guard for role permissions
-function RequireRole({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: Role[] }) {
-  const { user } = useAuthStore();
-
-  if (!user || !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-function MainAppContent() {
-  const checkAuth = useAuthStore(state => state.checkAuth);
-  const [idleMinutes, setIdleMinutes] = useState(30);
+function Placeholder() {
+  const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth();
-    
-    // Fetch custom idle timeout from settings
-    window.api.settings.get().then((res: any) => {
-      if (res.ok && res.data?.idle_logout_minutes) {
-        setIdleMinutes(res.data.idle_logout_minutes);
-      }
+    window.api.app.getVersion().then((res: any) => {
+      if (res.ok) setVersion(res.data);
     });
-  }, [checkAuth]);
-
-  // Activate activity lock/logout timer
-  useIdleTimer(idleMinutes);
+  }, []);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Guest routes */}
-        <Route
-          path="/login"
-          element = {
-            <RequireGuest>
-              <LoginPage />
-            </RequireGuest>
-          }
-        />
-
-        {/* Protected routes */}
-        <Route
-          path="/"
-          element = {
-            <RequireAuth>
-              <Layout />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<DashboardPage />} />
-          
-          <Route 
-            path="sales" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'cashier']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Sale POS Screen (Coming in M4)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="quotations" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'cashier']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Quotations Screen (Coming in M5)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="purchases" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'storekeeper']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Purchases Screen (Coming in M6)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="products" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'cashier', 'storekeeper', 'accountant']}>
-                <ProductsPage />
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="parties" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'cashier', 'storekeeper', 'accountant']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Parties Ledger Screen (Coming in M2)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="payments" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'cashier', 'accountant']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Payments Screen (Coming in M7)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="expenses" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'accountant']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Expenses Screen (Coming in M7)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="reports" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager', 'cashier', 'storekeeper', 'accountant']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Reports Screen (Coming in M8)</div>
-              </RequireRole>
-            } 
-          />
-          <Route 
-            path="settings" 
-            element={
-              <RequireRole allowedRoles={['admin', 'manager']}>
-                <div className="bg-white p-6 rounded-xl border border-gray-200">Settings Screen (Coming in M9)</div>
-              </RequireRole>
-            } 
-          />
-        </Route>
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA] font-sans">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-[#111827]">Fazal Hardware</h1>
+        <p className="text-sm text-[#6B7280] mt-2">
+          Boilerplate ready{version ? ` — v${version}` : ''}. Build modules per docs/Fazal_Hardware_PRD.md.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -195,7 +36,7 @@ export default function App() {
           </div>
           <h2 className="text-xl font-bold mb-2">Desktop Environment Required</h2>
           <p className="text-sm text-[#6B7280] mb-6">
-            Fazal POS & Inventory is designed to run locally as an offline desktop application.
+            Fazal Hardware is designed to run locally as an offline desktop application.
           </p>
           <div className="bg-[#F7F8FA] border border-[#E5E7EB] rounded-lg p-4 text-left text-xs font-mono text-gray-700 mb-6 space-y-2">
             <p className="font-semibold text-gray-900">To launch the desktop application, run:</p>
@@ -205,7 +46,7 @@ export default function App() {
             </p>
           </div>
           <div className="text-[10px] text-gray-400">
-            Fazal POS & Inventory • Offline-First Retail ERP
+            Fazal Hardware • Offline-First Inventory & Billing
           </div>
         </div>
       </div>
@@ -214,7 +55,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MainAppContent />
+      <Placeholder />
     </QueryClientProvider>
   );
 }
