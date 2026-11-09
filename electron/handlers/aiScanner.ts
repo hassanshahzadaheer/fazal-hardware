@@ -18,6 +18,15 @@ function guessMimeType(filePath: string): string {
   return 'image/jpeg';
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Gemini returns 503 when the model is transiently overloaded — retry a
+// couple of times with backoff before surfacing it as a real failure.
+const MAX_RETRIES = 3;
+const RETRY_DELAYS_MS = [1000, 3000, 6000];
+
 // Graceful degradation per §25.3: the rest of the app works fully offline;
 // this is the one feature that genuinely needs the internet, so it fails
 // with a clear OFFLINE error up front rather than hanging on a fetch.
@@ -42,24 +51,34 @@ export async function scanInvoice(filePath: string): Promise<Result<ExtractedInv
   }
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: PROMPT }, { inline_data: { mime_type: guessMimeType(filePath), data: base64 } }],
-            },
-          ],
-          generationConfig: { responseMimeType: 'application/json' },
-        }),
-      }
-    );
+    let response: Response;
+    for (let attempt = 0; ; attempt++) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: PROMPT }, { inline_data: { mime_type: guessMimeType(filePath), data: base64 } }],
+              },
+            ],
+            generationConfig: { responseMimeType: 'application/json' },
+          }),
+        }
+      );
+
+      if (response.status !== 503 || attempt >= MAX_RETRIES) break;
+      await sleep(RETRY_DELAYS_MS[attempt]);
+    }
 
     if (!response.ok) {
-      return { ok: false, error: { code: 'API_ERROR', message: `Gemini API error: ${response.status}` } };
+      const message =
+        response.status === 503
+          ? 'Gemini is temporarily overloaded — please try again in a moment.'
+          : `Gemini API error: ${response.status}`;
+      return { ok: false, error: { code: 'API_ERROR', message } };
     }
 
     const data: any = await response.json();
