@@ -7,19 +7,17 @@ describe('aiScanner handler (Task 10.1) — offline degradation + API wiring', (
     vi.unstubAllEnvs();
   });
 
-  it('returns an OFFLINE error with no API key configured, instead of attempting a network call', async () => {
-    vi.stubEnv('GEMINI_API_KEY', '');
+  it('returns a NOT_CONFIGURED error with no API key configured, instead of attempting a network call', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    const result = await scanInvoice('/tmp/does-not-matter.jpg');
+    const result = await scanInvoice('/tmp/does-not-matter.jpg', null);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe('OFFLINE');
+    if (!result.ok) expect(result.error.code).toBe('NOT_CONFIGURED');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('parses a successful Gemini response into the expected shape', async () => {
-    vi.stubEnv('GEMINI_API_KEY', 'test-key');
     const mockInvoice = {
       supplier_name: 'Agha Steel',
       invoice_date: '2026-10-18',
@@ -39,7 +37,7 @@ describe('aiScanner handler (Task 10.1) — offline degradation + API wiring', (
 
     // Reading a real small file avoids mocking fs for this test; any tiny
     // existing file works since content is just base64-encoded, not parsed.
-    const result = await scanInvoice(__filename);
+    const result = await scanInvoice(__filename, 'test-key');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.supplierName).toBe('Agha Steel');
@@ -49,31 +47,28 @@ describe('aiScanner handler (Task 10.1) — offline degradation + API wiring', (
   });
 
   it('returns an API_ERROR when Gemini responds with a non-ok status', async () => {
-    vi.stubEnv('GEMINI_API_KEY', 'test-key');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }));
 
-    const result = await scanInvoice(__filename);
+    const result = await scanInvoice(__filename, 'test-key');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('API_ERROR');
   });
 
   it('returns a NETWORK_ERROR if fetch itself throws (offline mid-scan)', async () => {
-    vi.stubEnv('GEMINI_API_KEY', 'test-key');
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
 
-    const result = await scanInvoice(__filename);
+    const result = await scanInvoice(__filename, 'test-key');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('NETWORK_ERROR');
   });
 
   it('returns a PARSE_ERROR when the model response has no usable text', async () => {
-    vi.stubEnv('GEMINI_API_KEY', 'test-key');
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ candidates: [] }) })
     );
 
-    const result = await scanInvoice(__filename);
+    const result = await scanInvoice(__filename, 'test-key');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('PARSE_ERROR');
   });

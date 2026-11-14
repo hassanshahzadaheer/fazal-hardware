@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Eye, RotateCcw, Receipt } from 'lucide-react';
+import { Plus, Eye, Pencil, RotateCcw, Receipt, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { SaleInvoice } from '../../../shared/types';
 import SaleDetailDialog from './SaleDetailDialog';
 import SaleReturnDialog from './SaleReturnDialog';
-import { Badge, EmptyState, Tooltip, PageHeader, Toolbar, Pagination } from '../../components/ui';
+import SaleEditDialog from './SaleEditDialog';
+import { Badge, Input, EmptyState, Tooltip, PageHeader, Toolbar, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number): string {
@@ -41,11 +42,18 @@ export default function SalesPage() {
   const [search, setSearch] = useState('');
   const [viewing, setViewing] = useState<SaleInvoice | null>(null);
   const [returning, setReturning] = useState<SaleInvoice | null>(null);
+  const [editing, setEditing] = useState<SaleInvoice | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['sales'],
+    // Always pull fresh records when the page opens / the window regains focus — no manual refresh.
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const res = await window.api.sales.list();
       if (!res.ok) throw new Error(res.error.message);
@@ -56,11 +64,17 @@ export default function SalesPage() {
   const filtered = useMemo(() => {
     if (!invoices) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return invoices;
-    return invoices.filter((inv) =>
-      [inv.invoiceNumber, inv.customerName].filter(Boolean).some((f) => f!.toLowerCase().includes(q))
-    );
-  }, [invoices, search]);
+    // createdDate is "YYYY-MM-DD HH:MM:SS", so its first 10 chars compare directly with <input type=date>.
+    const rows = invoices.filter((inv) => {
+      const day = inv.createdDate.slice(0, 10);
+      if (dateFrom && day < dateFrom) return false;
+      if (dateTo && day > dateTo) return false;
+      if (!q) return true;
+      return [inv.invoiceNumber, inv.customerName].filter(Boolean).some((f) => f!.toLowerCase().includes(q));
+    });
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return rows.sort((a, b) => dir * (a.createdDate.localeCompare(b.createdDate) || a.id - b.id));
+  }, [invoices, search, dateFrom, dateTo, sortDir]);
 
   const totalRevenue = useMemo(() => filtered.reduce((sum, inv) => sum + inv.total, 0), [filtered]);
 
@@ -83,6 +97,16 @@ export default function SalesPage() {
     queryClient.invalidateQueries({ queryKey: ['customers'] });
   };
 
+  const handleEdited = () => {
+    setEditing(null);
+    queryClient.invalidateQueries({ queryKey: ['sales'] });
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['customers'] });
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+  };
+
+  const hasDateFilter = dateFrom !== '' || dateTo !== '';
+
   return (
     <div className="p-8 max-w-[1400px]">
       <PageHeader
@@ -96,6 +120,48 @@ export default function SalesPage() {
           searchValue={search}
           onSearchChange={handleSearchChange}
           searchPlaceholder="Search by invoice number or customer…"
+          filters={
+            <div className="flex items-center gap-1.5 text-[13px] text-ink-muted">
+              <Input
+                type="date"
+                aria-label="From date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => {
+                  setDateFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="w-[9.5rem] py-1.5"
+              />
+              <span>to</span>
+              <Input
+                type="date"
+                aria-label="To date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  setPage(1);
+                }}
+                className="w-[9.5rem] py-1.5"
+              />
+              {hasDateFilter && (
+                <Tooltip content="Clear date filter">
+                  <button
+                    onClick={() => {
+                      setDateFrom('');
+                      setDateTo('');
+                      setPage(1);
+                    }}
+                    aria-label="Clear date filter"
+                    className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              )}
+            </div>
+          }
           action={
             <Link
               to="/sales/new"
@@ -111,8 +177,12 @@ export default function SalesPage() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Receipt}
-            title={search ? 'No sales match your search' : 'No sales yet'}
-            description={search ? 'Try a different invoice number or customer.' : 'Completed sales will show up here.'}
+            title={search || hasDateFilter ? 'No sales match your filters' : 'No sales yet'}
+            description={
+              search || hasDateFilter
+                ? 'Try a different invoice number, customer or date range.'
+                : 'Completed sales will show up here.'
+            }
           />
         ) : (
           <>
@@ -122,7 +192,22 @@ export default function SalesPage() {
                 <tr>
                   <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Invoice #</th>
                   <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Customer</th>
-                  <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Date</th>
+                  <th
+                    className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide"
+                    aria-sort={sortDir === 'asc' ? 'ascending' : 'descending'}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+                        setPage(1);
+                      }}
+                      className="inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink transition-colors"
+                    >
+                      Date
+                      {sortDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                    </button>
+                  </th>
                   <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Total</th>
                   <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Paid</th>
                   <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Status</th>
@@ -164,6 +249,17 @@ export default function SalesPage() {
                           </button>
                         </Tooltip>
                         {inv.status !== 'returned' && (
+                          <Tooltip content="Edit this sale">
+                            <button
+                              onClick={() => setEditing(inv)}
+                              aria-label={`Edit ${inv.invoiceNumber}`}
+                              className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
+                        )}
+                        {inv.status !== 'returned' && (
                           <Tooltip content="Return items from this sale">
                             <button
                               onClick={() => setReturning(inv)}
@@ -197,6 +293,7 @@ export default function SalesPage() {
       </div>
 
       {viewing && <SaleDetailDialog invoice={viewing} onClose={() => setViewing(null)} />}
+      {editing && <SaleEditDialog invoice={editing} onClose={() => setEditing(null)} onSaved={handleEdited} />}
       {returning && (
         <SaleReturnDialog invoice={returning} onClose={() => setReturning(null)} onReturned={handleReturned} />
       )}

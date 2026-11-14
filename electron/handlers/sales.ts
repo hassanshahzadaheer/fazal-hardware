@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { Result, SaleInvoice, LineItem } from '../../shared/types';
 import { DocPaymentMode, SaleStatus, PriceTier } from '../../shared/constants';
-import { saleInvoiceCreateSchema } from '../../shared/schemas';
+import { saleInvoiceCreateSchema, saleInvoiceUpdateSchema } from '../../shared/schemas';
 import { generateInvoiceNumber } from '../lib/sequences';
 import { recordMovement } from './stock';
 
@@ -251,5 +251,106 @@ export function returnSale(
   }
 
   const row = db.prepare('SELECT * FROM sale_invoices WHERE id = ?').get(invoiceId) as SaleInvoiceRow;
+  return { ok: true, data: mapRow(row) };
+}
+
+// Edit an existing sale (client call 2026-11-14): replace lines / discount / freight and keep
+// stock, customer balance and the payment record consistent with the new totals, atomically.
+//  - Stock: per product, the change in sold quantity is applied as an 'adjustment' movement
+//    (sold more -> stock down, sold less / line deleted -> stock back up).
+//  - Paid amount: cash/card sales stay fully paid at the new total; credit stays 0; partial keeps
+//    what was paid (capped at the new total).
+//  - Customer balance moves by the change in the unpaid amount.
+export function update(db: Database.Database, id: number, payload: unknown): Result<SaleInvoice> {
+  const existing = db.prepare('SELECT * FROM sale_invoices WHERE id = ?').get(id) as SaleInvoiceRow | undefined;
+  if (!existing) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Sale invoice not found' } };
+  }
+  if (existing.status === 'returned') {
+    return { ok: false, error: { code: 'ALREADY_RETURNED', message: 'A returned sale cannot be edited' } };
+  }
+  const parsed = saleInvoiceUpdateSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message ?? 'Invalid input' },
+    };
+  }
+  const d = parsed.data;
+
+  const subtotal = d.items.reduce((sum, li) => sum + li.lineTotal, 0);
+  const total = subtotal - d.discountAmount + d.freightAmount;
+  if (total < 0) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Discount cannot exceed the sale total' } };
+  }
+
+  const mode = existing.payment_mode as DocPaymentMode | null;
+  const paid = mode === 'credit' ? 0 : mode === 'partial' ? Math.min(existing.paid_amount, total) : total;
+  const status: SaleStatus = paid >= total ? 'completed' : paid > 0 ? 'partial' : 'credit';
+
+  try {
+    db.transaction(() => {
+      const oldItems = JSON.parse(existing.items) as LineItem[];
+      const qtyByProduct = (items: LineItem[]) => {
+        const m = new Map<number, number>();
+        for (const li of items) m.set(li.productId, (m.get(li.productId) ?? 0) + Math.abs(li.quantity));
+        return m;
+      };
+      const before = qtyByProduct(oldItems);
+      const after = qtyByProduct(d.items);
+
+      for (const productId of new Set([...before.keys(), ...after.keys()])) {
+        const delta = (after.get(productId) ?? 0) - (before.get(productId) ?? 0);
+        if (delta === 0) continue;
+        const product = db.prepare('SELECT cost_price FROM products WHERE id = ?').get(productId) as
+          | { cost_price: number | null }
+          | undefined;
+        if (!product) throw new Error(`Product ${productId} not found`);
+        recordMovement(db, {
+          productId,
+          type: 'adjustment',
+          quantity: -delta,
+          referenceType: 'sale_invoice',
+          referenceId: id,
+          costPriceAtTime: product.cost_price,
+          notes: 'Sale edited',
+        });
+        db.prepare('UPDATE products SET stock_on_hand = stock_on_hand - ? WHERE id = ?').run(delta, productId);
+      }
+
+      db.prepare(
+        `UPDATE sale_invoices SET items = ?, subtotal = ?, discount_amount = ?, freight_amount = ?, total = ?,
+           paid_amount = ?, status = ?, notes = COALESCE(?, notes), updated_date = datetime('now') WHERE id = ?`
+      ).run(JSON.stringify(d.items), subtotal, d.discountAmount, d.freightAmount, total, paid, status, d.notes ?? null, id);
+
+      if (existing.customer_id) {
+        const unpaidDelta = total - paid - (existing.total - existing.paid_amount);
+        if (unpaidDelta !== 0) {
+          db.prepare('UPDATE customers SET balance = balance + ? WHERE id = ?').run(unpaidDelta, existing.customer_id);
+        }
+
+        const payment = db
+          .prepare(
+            `SELECT id FROM payments WHERE reference_type = 'sale_invoice' AND reference_id = ? AND direction = 'received'
+             ORDER BY id LIMIT 1`
+          )
+          .get(id) as { id: number } | undefined;
+        if (payment && paid > 0) {
+          db.prepare(`UPDATE payments SET amount = ?, updated_date = datetime('now') WHERE id = ?`).run(paid, payment.id);
+        } else if (payment) {
+          db.prepare('DELETE FROM payments WHERE id = ?').run(payment.id);
+        } else if (paid > 0) {
+          db.prepare(
+            `INSERT INTO payments (party_type, party_id, party_name, amount, direction, mode, reference_type, reference_id)
+             VALUES ('customer', ?, ?, ?, 'received', ?, 'sale_invoice', ?)`
+          ).run(existing.customer_id, existing.customer_name, paid, mode === 'partial' ? 'cash' : mode ?? 'cash', id);
+        }
+      }
+    })();
+  } catch (err: any) {
+    return { ok: false, error: { code: 'TRANSACTION_FAILED', message: err.message ?? 'Failed to update sale' } };
+  }
+
+  const row = db.prepare('SELECT * FROM sale_invoices WHERE id = ?').get(id) as SaleInvoiceRow;
   return { ok: true, data: mapRow(row) };
 }

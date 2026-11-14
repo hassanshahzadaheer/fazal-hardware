@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { initDb, closeDb } from '../../db';
-import { list, create, remove } from '../categories';
+import { ensureProductCategories, list, create, remove } from '../categories';
 
 describe('categories handler (Task 2.1)', () => {
   let testDb: Database.Database;
@@ -92,5 +92,17 @@ describe('categories handler (Task 2.1)', () => {
     const result = remove(testDb, 999999);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('NOT_FOUND');
+  });
+
+  it('ensureProductCategories adds Wood/Plywood/Hardware once and leaves other categories alone', () => {
+    create(testDb, { name: 'Legacy Paint' });
+    ensureProductCategories(testDb);
+    ensureProductCategories(testDb); // idempotent
+    const res = list(testDb);
+    if (!res.ok) throw new Error('list failed');
+    const names = res.data.map((c) => c.name);
+    for (const n of ['Wood', 'Plywood', 'Hardware', 'Legacy Paint']) {
+      expect(names.filter((x) => x === n)).toHaveLength(1);
+    }
   });
 });

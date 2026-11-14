@@ -1,24 +1,33 @@
 import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Tag, Bookmark, Trash2, DatabaseBackup, FolderOpen, Building2, LucideIcon } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Tag, Bookmark, Trash2, DatabaseBackup, FolderOpen, Building2, Sparkles, RefreshCw, KeyRound, LucideIcon } from 'lucide-react';
 import { notify } from '../../components/shared/NotificationProvider';
 import { Button, Input, Field, EmptyState, TableSkeleton, Tooltip, confirmDialog, PageHeader } from '../../components/ui';
+import UpdatesTab from './UpdatesTab';
+import AiScannerTab from './AiScannerTab';
+import LicenseTab from './LicenseTab';
+import { useGateStore } from '../../stores/licenseStore';
 
-type Tab = 'categories' | 'brands' | 'company' | 'backup';
+type Tab = 'categories' | 'brands' | 'company' | 'ai' | 'updates' | 'license' | 'backup';
 
 const TABS: [Tab, string, LucideIcon][] = [
   ['categories', 'Categories', Tag],
   ['brands', 'Brands', Bookmark],
   ['company', 'Company Info', Building2],
+  ['ai', 'AI Scanner', Sparkles],
+  ['updates', 'Updates', RefreshCw],
+  ['license', 'Licence', KeyRound],
   ['backup', 'Backup & Restore', DatabaseBackup],
 ];
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('categories');
+  const initial = (useLocation().state as { tab?: Tab } | null)?.tab;
+  const [tab, setTab] = useState<Tab>(initial ?? 'categories');
 
   return (
     <div className="p-8 max-w-[1400px]">
-      <PageHeader title="Settings" subtitle="Catalog taxonomy, company details, and backups." />
+      <PageHeader title="Settings" subtitle="Catalog, company details, AI scanner, updates, licence and backups." />
 
       <div className="bg-surface border border-border rounded-md overflow-hidden grid grid-cols-[200px_1fr] min-h-[480px]">
         <nav className="border-r border-border p-3 space-y-0.5 bg-surface-sunken/40">
@@ -40,6 +49,9 @@ export default function SettingsPage() {
           {tab === 'categories' && <CategoriesTab />}
           {tab === 'brands' && <BrandsTab />}
           {tab === 'company' && <CompanyInfoTab />}
+          {tab === 'ai' && <AiScannerTab />}
+          {tab === 'updates' && <UpdatesTab />}
+          {tab === 'license' && <LicenseTab />}
           {tab === 'backup' && <BackupTab />}
         </div>
       </div>
@@ -302,6 +314,7 @@ function CompanyInfoTab() {
 }
 
 function BackupTab() {
+  const licensed = useGateStore((s) => s.license?.state === 'active');
   const [working, setWorking] = useState<'backup' | 'restore' | null>(null);
 
   const handleBackup = async () => {
@@ -368,7 +381,8 @@ function BackupTab() {
             className="text-danger hover:bg-danger-soft"
             onClick={handleRestore}
             loading={working === 'restore'}
-            disabled={working !== null}
+            disabled={working !== null || !licensed}
+            title={licensed ? undefined : 'Restore is unavailable while the licence is not active. Backup still works.'}
           >
             Choose Backup File…
           </Button>

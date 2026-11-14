@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { Result, Category } from '../../shared/types';
 import { categoryCreateSchema } from '../../shared/schemas';
+import { PRODUCT_CATEGORIES } from '../../shared/constants';
 
 interface CategoryRow {
   id: number;
@@ -48,4 +49,15 @@ export function remove(db: Database.Database, id: number): Result<null> {
   }
   db.prepare('DELETE FROM categories WHERE id = ?').run(id);
   return { ok: true, data: null };
+}
+
+// Client call 2026-11-14: the Product screen offers exactly Wood / Plywood / Hardware. Called once at
+// app start (not from a migration, so a fresh DB in tests still starts empty). Existing categories and
+// the products pointing at them are never touched.
+export function ensureProductCategories(db: Database.Database): void {
+  const exists = db.prepare('SELECT 1 FROM categories WHERE lower(name) = lower(?)');
+  const insert = db.prepare('INSERT INTO categories (name) VALUES (?)');
+  for (const name of PRODUCT_CATEGORIES) {
+    if (!exists.get(name)) insert.run(name);
+  }
 }

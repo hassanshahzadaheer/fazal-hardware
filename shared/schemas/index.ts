@@ -44,14 +44,11 @@ export const supplierCreateSchema = z.object({
 });
 export const supplierUpdateSchema = supplierCreateSchema.partial();
 
-// Dashes are the only allowed separator (e.g. UV-NOVA-7946) — no commas, spaces or other symbols.
-export const PRODUCT_CODE_REGEX = /^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$/;
-
 export const productCreateSchema = z.object({
   productCode: z
+    // Free text: dashes, symbols and special characters are all allowed (client call 2026-11-14).
     .string()
     .trim()
-    .regex(PRODUCT_CODE_REGEX, 'Product Code may only contain letters, numbers and dashes (e.g. UV-NOVA-7946)')
     .nullable()
     .optional(),
   name: z.string().min(1, 'Product name is required').trim(),
@@ -94,6 +91,14 @@ const purchaseLineItemSchema = z.object({
   unit: z.string().min(1),
   unitPrice: z.number().nonnegative(),
   lineTotal: z.number().nonnegative(),
+});
+
+// Editing an existing sale: lines + order-level discount/freight. Totals are recomputed server-side.
+export const saleInvoiceUpdateSchema = z.object({
+  items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
+  discountAmount: z.number().nonnegative().default(0),
+  freightAmount: z.number().nonnegative().default(0),
+  notes: z.string().trim().nullable().optional(),
 });
 
 export const saleInvoiceCreateSchema = z.object({

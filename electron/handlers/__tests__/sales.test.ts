@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import { initDb, closeDb } from '../../db';
-import { list, get, create, returnSale } from '../sales';
+import { list, get, create, update, returnSale } from '../sales';
 import { create as createProduct } from '../products';
 import { create as createCustomer } from '../customers';
 
@@ -172,6 +172,57 @@ describe('sales handler (Tasks 4.1/4.3/4.5)', () => {
     const result = get(testDb, 999999);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('NOT_FOUND');
+  });
+
+  describe('edit (client call 2026-11-14)', () => {
+    const stock = () => (testDb.prepare('SELECT stock_on_hand FROM products WHERE id = ?').get(productId) as any).stock_on_hand;
+    const balance = () => (testDb.prepare('SELECT balance FROM customers WHERE id = ?').get(customerId) as any).balance;
+    const item = (quantity: number, unitPrice: number) => ({
+      productId,
+      productName: 'Plywood 18mm',
+      quantity,
+      unit: 'sheet',
+      unitPrice,
+      lineTotal: quantity * unitPrice,
+    });
+
+    it('raising qty + price re-adjusts stock, total and (for a credit sale) the customer balance', () => {
+      const r = create(testDb, basePayload({ customerId, customerName: 'Ali', paymentMode: 'credit' }));
+      if (!r.ok) throw new Error('setup failed');
+      const stockBefore = stock();
+      const balBefore = balance();
+
+      const u = update(testDb, r.data.id, { items: [item(5, 2600)], discountAmount: 0, freightAmount: 0 });
+      expect(u.ok).toBe(true);
+      if (!u.ok) return;
+      expect(u.data.total).toBe(13000);
+      expect(u.data.status).toBe('credit');
+      expect(stock()).toBe(stockBefore - 3); // sold 5 instead of 2
+      expect(balance()).toBe(balBefore + (13000 - 5000));
+    });
+
+    it('deleting a line (replacing with another product qty 0 not allowed) restores stock; fully-paid sale stays paid at the new total', () => {
+      const r = create(testDb, basePayload({ paymentMode: 'cash' }));
+      if (!r.ok) throw new Error('setup failed');
+      const stockBefore = stock();
+      const u = update(testDb, r.data.id, { items: [item(1, 2500)], discountAmount: 100, freightAmount: 0 });
+      expect(u.ok).toBe(true);
+      if (!u.ok) return;
+      expect(u.data.total).toBe(2400);
+      expect(u.data.paidAmount).toBe(2400);
+      expect(u.data.status).toBe('completed');
+      expect(stock()).toBe(stockBefore + 1);
+    });
+
+    it('refuses to edit a returned sale and requires at least one line', () => {
+      const r = create(testDb, basePayload());
+      if (!r.ok) throw new Error('setup failed');
+      expect(update(testDb, r.data.id, { items: [], discountAmount: 0, freightAmount: 0 }).ok).toBe(false);
+      returnSale(testDb, r.data.id, [{ productId, quantity: 2 }]);
+      const u = update(testDb, r.data.id, { items: [item(1, 1)], discountAmount: 0, freightAmount: 0 });
+      expect(u.ok).toBe(false);
+      if (!u.ok) expect(u.error.code).toBe('ALREADY_RETURNED');
+    });
   });
 
   describe('returns (Task 4.5)', () => {

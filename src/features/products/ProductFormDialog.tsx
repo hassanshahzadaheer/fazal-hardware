@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, FormEvent, KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BASE_UNITS } from '../../../shared/constants';
+import { PRODUCT_CATEGORIES } from '../../../shared/constants';
 import { ProductWithNames } from '../../../shared/types';
-import { parseVariantText, stringifyVariant } from './variantAttributes';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Modal, Field, Input, Select, Button } from '../../components/ui';
+import { Modal, Field, Input, SearchableSelect, Button } from '../../components/ui';
 
 interface Props {
   open: boolean;
@@ -18,21 +17,14 @@ interface FormState {
   name: string;
   color: string;
   packingSize: string;
-  minSalePrice: string;
   length: string;
   width: string;
   categoryId: string;
   brandId: string;
-  variantText: string;
-  baseUnit: string;
-  purchaseUnit: string;
-  purchaseUnitFactor: string;
   barcode: string;
   retailPrice: string;
-  wholesalePrice: string;
   costPrice: string;
   reorderLevel: string;
-  rackLocation: string;
 }
 
 function emptyForm(): FormState {
@@ -40,22 +32,15 @@ function emptyForm(): FormState {
     productCode: '',
     color: '',
     packingSize: '',
-    minSalePrice: '',
     length: '',
     width: '',
     name: '',
     categoryId: '',
     brandId: '',
-    variantText: '',
-    baseUnit: '',
-    purchaseUnit: '',
-    purchaseUnitFactor: '',
     barcode: '',
     retailPrice: '',
-    wholesalePrice: '',
     costPrice: '',
     reorderLevel: '',
-    rackLocation: '',
   };
 }
 
@@ -64,24 +49,19 @@ function formFromProduct(product: ProductWithNames): FormState {
     productCode: product.productCode ?? '',
     color: product.color ?? '',
     packingSize: product.packingSize ?? '',
-    minSalePrice: product.minSalePrice?.toString() ?? '',
     length: product.length?.toString() ?? '',
     width: product.width?.toString() ?? '',
     name: product.name,
     categoryId: product.categoryId?.toString() ?? '',
     brandId: product.brandId?.toString() ?? '',
-    variantText: stringifyVariant(product.variantAttributes),
-    baseUnit: product.baseUnit,
-    purchaseUnit: product.purchaseUnit ?? '',
-    purchaseUnitFactor: product.purchaseUnitFactor?.toString() ?? '',
     barcode: product.barcode ?? '',
     retailPrice: product.retailPrice?.toString() ?? '',
-    wholesalePrice: product.wholesalePrice?.toString() ?? '',
     costPrice: product.costPrice?.toString() ?? '',
     reorderLevel: product.reorderLevel?.toString() ?? '',
-    rackLocation: product.rackLocation ?? '',
   };
 }
+
+const DEFAULT_BASE_UNIT = 'piece';
 
 const numberOrUndefined = (v: string) => (v.trim() === '' ? undefined : Number(v));
 
@@ -122,6 +102,21 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
     enabled: open,
   });
 
+  // Only the three client categories are offered; a product that still points at an older category
+  // keeps it as an extra option so editing doesn't silently blank it.
+  const categoryOptions = (() => {
+    const all = (categories ?? []) as { id: number; name: string }[];
+    const fixed = PRODUCT_CATEGORIES.map((n) => all.find((c) => c.name.toLowerCase() === n.toLowerCase())).filter(
+      (c): c is { id: number; name: string } => !!c
+    );
+    const legacy = all.find((c) => c.id === product?.categoryId && !fixed.includes(c));
+    return [...fixed, ...(legacy ? [legacy] : [])].map((c) => ({ value: String(c.id), label: c.name }));
+  })();
+  const companyOptions = ((brands ?? []) as { id: number; name: string }[]).map((b) => ({
+    value: String(b.id),
+    label: b.name,
+  }));
+
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -144,27 +139,23 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
     setError(null);
     setSubmitting(true);
 
-    const payload = {
+    // Fields removed from the form (min/wholesale price, units, variant, rack) are neither sent on
+    // update — so existing values survive — nor required on create (baseUnit defaults to 'piece').
+    const editable = {
       productCode: form.productCode.trim() || null,
+      name: form.name,
+      brandId: form.brandId ? Number(form.brandId) : null,
+      categoryId: form.categoryId ? Number(form.categoryId) : null,
       color: form.color.trim() || null,
       packingSize: form.packingSize.trim() || null,
-      minSalePrice: numberOrUndefined(form.minSalePrice) ?? null,
+      costPrice: numberOrUndefined(form.costPrice) ?? null,
+      retailPrice: numberOrUndefined(form.retailPrice) ?? null,
       length: numberOrUndefined(form.length) ?? null,
       width: numberOrUndefined(form.width) ?? null,
-      name: form.name,
-      categoryId: form.categoryId ? Number(form.categoryId) : null,
-      brandId: form.brandId ? Number(form.brandId) : null,
-      variantAttributes: parseVariantText(form.variantText),
-      baseUnit: form.baseUnit,
-      purchaseUnit: form.purchaseUnit || null,
-      purchaseUnitFactor: numberOrUndefined(form.purchaseUnitFactor) ?? null,
-      barcode: form.barcode || null,
-      retailPrice: numberOrUndefined(form.retailPrice) ?? null,
-      wholesalePrice: numberOrUndefined(form.wholesalePrice) ?? null,
-      costPrice: numberOrUndefined(form.costPrice) ?? null,
       reorderLevel: numberOrUndefined(form.reorderLevel) ?? null,
-      rackLocation: form.rackLocation || null,
+      barcode: form.barcode.trim() || null,
     };
+    const payload = product ? editable : { ...editable, baseUnit: DEFAULT_BASE_UNIT };
 
     const res = product
       ? await window.api.products.update(product.id, payload)
@@ -210,65 +201,52 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
           </div>
         )}
 
-        {error && (
-          <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
-            {error}
-          </div>
-        )}
-
         {/* Field order follows the client's reference screen. DOM order == tab order, and Enter
             advances like Tab (see handleEnterAsTab); Enter on the last field submits. */}
 
         <section>
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Product</h3>
           <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Product Code">
               <Input
                 ref={firstFieldRef}
                 value={form.productCode}
                 onChange={(e) => set('productCode', e.target.value)}
                 placeholder="e.g. UV-NOVA-7946"
-                pattern="[A-Za-z0-9]+(-[A-Za-z0-9]+)*"
-                title="Letters, numbers and dashes only (e.g. UV-NOVA-7946)"
               />
             </Field>
           </div>
-          <div className={'col-span-12 lg:col-span-6'}>
+          <div className="col-span-12 lg:col-span-6">
             <Field label="Product Name" required>
-              <Input
-              required
+              <Input required
                 value={form.name}
                 onChange={(e) => set('name', e.target.value)}
                 placeholder="e.g. PVC Pipe 4 inch"
               />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Company">
-              <Select value={form.brandId} onChange={(e) => set('brandId', e.target.value)}>
-                <option value="">Select company</option>
-                {(brands ?? []).map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                value={form.brandId}
+                onChange={(v) => set('brandId', v)}
+                options={companyOptions}
+                placeholder="Select company"
+              />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
             <Field label="Category">
-              <Select value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-                <option value="">Select category</option>
-                {(categories ?? []).map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                value={form.categoryId}
+                onChange={(v) => set('categoryId', v)}
+                options={categoryOptions}
+                placeholder="Select category"
+              />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
             <Field label="Color/Mode">
               <Input
                 value={form.color}
@@ -277,7 +255,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
             <Field label="Packing Size">
               <Input
                 value={form.packingSize}
@@ -292,7 +270,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
         <section>
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Pricing</h3>
           <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
+          <div className="col-span-12 sm:col-span-6">
             <Field label="Pur Price (PKR)">
               <Input
                 type="number"
@@ -303,7 +281,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
+          <div className="col-span-12 sm:col-span-6">
             <Field label="Sale Price (PKR)">
               <Input
                 type="number"
@@ -314,35 +292,13 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
-            <Field label="Min Sale Price (PKR)">
-              <Input
-                type="number"
-                min="0"
-                value={form.minSalePrice}
-                onChange={(e) => set('minSalePrice', e.target.value)}
-                placeholder="e.g. 420"
-              />
-            </Field>
-          </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
-            <Field label="Wholesale Price (PKR)">
-              <Input
-                type="number"
-                min="0"
-                value={form.wholesalePrice}
-                onChange={(e) => set('wholesalePrice', e.target.value)}
-                placeholder="e.g. 400"
-              />
-            </Field>
-          </div>
           </div>
         </section>
 
         <section>
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Dimensions & Stock</h3>
           <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Length">
               <Input
                 type="number"
@@ -354,7 +310,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Width">
               <Input
                 type="number"
@@ -366,7 +322,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               />
             </Field>
           </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Reorder Level">
               <Input
                 type="number"
@@ -377,71 +333,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
               />
             </Field>
           </div>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Units</h3>
-          <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
-            <Field label="Selling Unit" required>
-              <Select required value={form.baseUnit} onChange={(e) => set('baseUnit', e.target.value)}>
-                <option value="">Select unit</option>
-                {BASE_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
-            <Field label="Purchase Unit">
-              <Input
-                value={form.purchaseUnit}
-                onChange={(e) => set('purchaseUnit', e.target.value)}
-                placeholder="e.g. box, bundle"
-              />
-            </Field>
-          </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-4'}>
-            <Field label="Items Per Purchase Unit">
-              <Input
-                type="number"
-                min="0"
-                value={form.purchaseUnitFactor}
-                onChange={(e) => set('purchaseUnitFactor', e.target.value)}
-                placeholder="e.g. 144"
-              title="How many selling units make up one purchase unit — e.g. 1 box = 144 pieces, so enter 144."
-              />
-            </Field>
-          </div>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Other</h3>
-          <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
-          <div className={'col-span-12 lg:col-span-6'}>
-            <Field label="Variant Details">
-              <Input
-                value={form.variantText}
-                onChange={(e) => set('variantText', e.target.value)}
-                placeholder="thickness:18mm, grade:Commercial"
-                title="Format: key:value pairs separated by commas"
-              />
-            </Field>
-          </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
-            <Field label="Shelf/Rack Location">
-              <Input
-                value={form.rackLocation}
-                onChange={(e) => set('rackLocation', e.target.value)}
-                placeholder="e.g. Aisle 3, Shelf B"
-              />
-            </Field>
-          </div>
-          <div className={'col-span-12 sm:col-span-6 lg:col-span-3'}>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Barcode">
               <Input
                 value={form.barcode}

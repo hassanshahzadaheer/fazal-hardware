@@ -276,13 +276,57 @@ export interface ExtractedInvoice {
   total: number | null;
 }
 
-// §27: Licensing & Activation — result of checking the signed license file
-// against the embedded public key (electron/license/verify.ts).
+// §27: Licensing & Activation (online activation + signed, time-limited leases).
+// The server signs a "lease" with an Ed25519 private key it alone holds; the app
+// embeds only the public key and verifies leases locally (electron/license/lease.ts).
+export type LicenseRestrictionReason =
+  | 'suspended'
+  | 'revoked'
+  | 'expired'
+  | 'grace_expired'
+  | 'clock_tampered'
+  | 'invalid';
+
 export type LicenseStatus =
-  | { state: 'valid'; clientName: string; expiresAt: string }
-  | { state: 'expired'; clientName: string; expiresAt: string }
-  | { state: 'invalid' }
-  | { state: 'missing' };
+  | { state: 'unactivated' }
+  | {
+      state: 'active';
+      customerName: string;
+      /** Licence expiry (null = no expiry). */
+      expiresAt: string | null;
+      /** When the server last confirmed this licence (start of the offline grace window). */
+      lastCheckedAt: string;
+      /** After this moment, without a successful server check, the app goes read-only. */
+      graceEndsAt: string;
+      graceDays: number;
+      recheckDue: boolean;
+      /** Set when the most recent background check failed (e.g. offline). */
+      lastCheckError?: string;
+    }
+  | {
+      state: 'restricted';
+      reason: LicenseRestrictionReason;
+      customerName?: string;
+      expiresAt?: string | null;
+      lastCheckedAt?: string;
+    };
+
+// First-run setup (shop details, admin password, optional Gemini key).
+export interface SetupStatus {
+  setupCompleted: boolean;
+  /** True when this database already holds business data (an upgraded install). */
+  hasExistingData: boolean;
+}
+
+export type UpdateState =
+  | { state: 'idle'; currentVersion: string; lastCheckedAt: string | null }
+  | { state: 'checking'; currentVersion: string }
+  | { state: 'available'; currentVersion: string; version: string }
+  | { state: 'downloading'; currentVersion: string; version: string; percent: number; bytesPerSecond: number }
+  | { state: 'downloaded'; currentVersion: string; version: string }
+  | { state: 'not-available'; currentVersion: string; lastCheckedAt: string }
+  | { state: 'error'; currentVersion: string; message: string }
+  | { state: 'unsupported'; currentVersion: string; message: string };
 
 // §6: Dashboard aggregate, computed server-side in electron/handlers/dashboard.ts.
 export interface DashboardData {

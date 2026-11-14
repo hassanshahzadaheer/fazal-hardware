@@ -27,18 +27,19 @@ function sleep(ms: number): Promise<void> {
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1000, 3000, 6000];
 
-// Graceful degradation per §25.3: the rest of the app works fully offline;
-// this is the one feature that genuinely needs the internet, so it fails
-// with a clear OFFLINE error up front rather than hanging on a fetch.
-export async function scanInvoice(filePath: string): Promise<Result<ExtractedInvoice>> {
-  const apiKey = process.env.GEMINI_API_KEY;
+// Graceful degradation per §25.3: the rest of the app works fully offline and
+// without a Gemini key. This is the one feature that needs both, so it fails
+// with a clear NOT_CONFIGURED error up front rather than hanging on a fetch.
+// The key is supplied by the main process from OS-backed secure storage
+// (electron/secrets/gemini.ts) — this module never reads env vars or disk.
+export async function scanInvoice(filePath: string, apiKey: string | null): Promise<Result<ExtractedInvoice>> {
   if (!apiKey) {
     return {
       ok: false,
       error: {
-        code: 'OFFLINE',
+        code: 'NOT_CONFIGURED',
         message:
-          'AI Scanner needs an internet connection and a configured Gemini API key (set GEMINI_API_KEY) — unavailable right now.',
+          'AI Scanner needs a Gemini API key. Add yours in Settings → AI Scanner. Everything else in the app works without it.',
       },
     };
   }
@@ -54,10 +55,11 @@ export async function scanInvoice(filePath: string): Promise<Result<ExtractedInv
     let response: Response;
     for (let attempt = 0; ; attempt++) {
       response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          // Key travels in a header, not the URL, so it never lands in logs.
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
           body: JSON.stringify({
             contents: [
               {

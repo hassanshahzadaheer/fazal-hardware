@@ -14,8 +14,8 @@ interface UserRow {
   last_login_at: string | null;
 }
 
-const DEFAULT_ADMIN_EMAIL = 'admin@fazalhardware.local';
-const DEFAULT_ADMIN_PASSWORD = 'admin123';
+export const DEFAULT_ADMIN_EMAIL = 'admin@fazalhardware.local';
+export const DEFAULT_ADMIN_PASSWORD = 'admin123';
 
 // Seeds a single admin user the first time the app runs against an empty DB.
 // Proper first-run setup UX (letting the shop owner pick their own

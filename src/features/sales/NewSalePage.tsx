@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Search } from 'lucide-react';
 import { ProductWithNames, Customer, LineItem, Quotation } from '../../../shared/types';
 import { calcLineTotal } from './lineTotal';
@@ -23,12 +23,18 @@ function linesFromQuotation(quotation: Quotation): Line[] {
 }
 
 export default function NewSalePage() {
+  // While a bill is open the app must never restart for an update (main refuses the install).
+  useEffect(() => {
+    void window.api.updater.setBillingActive(true);
+    return () => { void window.api.updater.setBillingActive(false); };
+  }, []);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const fromQuotation = (location.state as { fromQuotation?: Quotation } | null)?.fromQuotation ?? null;
 
   const [search, setSearch] = useState('');
-  const [dimensional, setDimensional] = useState(false);
+  const [dimensional, setDimensional] = useState(() => !!fromQuotation?.items.some((i) => i.length || i.width));
   const [lines, setLines] = useState<Line[]>(fromQuotation ? linesFromQuotation(fromQuotation) : []);
   const [customerId, setCustomerId] = useState(fromQuotation?.customerId?.toString() ?? '');
   const [priceTier, setPriceTier] = useState<PriceTier>('retail');
@@ -59,7 +65,7 @@ export default function NewSalePage() {
     const q = search.trim().toLowerCase();
     if (!q || !products) return [];
     return products
-      .filter((p) => [p.name, p.barcode, p.rackLocation].filter(Boolean).some((f) => f!.toLowerCase().includes(q)))
+      .filter((p) => [p.name, p.productCode, p.barcode, p.rackLocation].filter(Boolean).some((f) => f!.toLowerCase().includes(q)))
       .slice(0, 8);
   }, [products, search]);
 
@@ -77,12 +83,14 @@ export default function NewSalePage() {
       productName: product.name,
       quantity: 1,
       unit: product.baseUnit,
-      length: null,
-      width: null,
+      // Dimensions stored on the product are pre-filled — no re-entry in sales.
+      length: product.length,
+      width: product.width,
       unitPrice,
       discountPercent: 0,
-      lineTotal: calcLineTotal(1, null, null, unitPrice, 0),
+      lineTotal: calcLineTotal(1, product.length, product.width, unitPrice, 0),
     };
+    if (product.length && product.width) setDimensional(true);
     setLines((prev) => [...prev, newLine]);
     setSearch('');
   };
@@ -142,6 +150,11 @@ export default function NewSalePage() {
       return;
     }
     notify(`Sale completed — ${formatPKR(total)}`, 'success');
+    // The listing must show the new sale (and updated stock / balances) without a manual refresh.
+    queryClient.invalidateQueries({ queryKey: ['sales'] });
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['customers'] });
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
     navigate('/sales');
   };
 
@@ -173,7 +186,7 @@ export default function NewSalePage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, barcode, or rack location…"
+              placeholder="Search by name, product code, barcode, or rack location…"
               autoFocus
               className="pl-9"
             />

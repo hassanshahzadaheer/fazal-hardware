@@ -1680,6 +1680,8 @@ const products = await window.electronAPI.products.list();
 
 ## 27. Licensing & Activation (internal — vendor-only, not client-facing)
 
+> **Superseded (v1.1):** the offline signed-file mechanism below was replaced by online activation with signed leases, an owner dashboard and an offline grace period. See `docs/LICENSING.md` and `license-server/`. Kept for history.
+
 Not part of the client's requirements — added so the vendor (Fazal POS) can
 control access to a paid install without depending on the client's internet
 connection, consistent with §25.3's offline-first design.
