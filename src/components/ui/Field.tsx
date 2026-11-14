@@ -11,7 +11,7 @@ interface Props {
 export default function Field({ label, hint, error, required, children }: Props) {
   return (
     <div>
-      <label className="block text-[13px] font-medium text-ink mb-1.5">
+      <label className="block text-[12.5px] font-medium text-ink-muted mb-1.5">
         {label}
         {required && <span className="text-danger"> *</span>}
       </label>

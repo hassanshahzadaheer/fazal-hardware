@@ -13,7 +13,7 @@ function initials(fullName: string | null, email: string): string {
   return email.slice(0, 2).toUpperCase();
 }
 
-export default function UserMenu({ collapsed }: { collapsed: boolean }) {
+export default function UserMenu() {
   const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -45,7 +45,7 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
     <div className="relative" ref={ref}>
       {open && (
         <div
-          className={`absolute bottom-full mb-2 ${collapsed ? 'left-full ml-2 w-56' : 'left-0 w-full'} bg-surface border border-border rounded-md shadow-lg py-1.5 animate-scale-in z-20`}
+          className={`absolute top-full mt-2 right-0 w-64 bg-surface border border-border rounded-lg shadow-lg py-1.5 animate-scale-in z-20`}
         >
           <div className="px-3 py-2 border-b border-border">
             <p className="text-[13px] font-medium text-ink truncate">{user.fullName ?? 'User'}</p>
@@ -74,20 +74,16 @@ export default function UserMenu({ collapsed }: { collapsed: boolean }) {
 
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-shell-raised/60 transition-colors"
+        className="flex items-center gap-2.5 pl-1.5 pr-3.5 h-11 rounded-full bg-surface border border-border hover:border-border-strong transition-colors"
       >
-        <div className="w-7 h-7 rounded-full bg-accent text-white text-[11px] font-semibold flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-full bg-accent text-white text-[11px] font-semibold flex items-center justify-center shrink-0">
           {initials(user.fullName, user.email)}
         </div>
-        {!collapsed && (
-          <>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-[12.5px] font-medium text-white truncate leading-tight">{user.fullName ?? user.email}</p>
-              <p className="text-[11px] text-white/45 truncate leading-tight">{user.email}</p>
-            </div>
-            <ChevronsUpDown className="w-3.5 h-3.5 text-white/40 shrink-0" />
-          </>
-        )}
+        <div className="text-left min-w-0 hidden sm:block">
+          <p className="text-[12.5px] font-medium text-ink truncate leading-tight max-w-[140px]">{user.fullName ?? user.email}</p>
+          <p className="text-[11px] text-ink-faint truncate leading-tight max-w-[140px] capitalize">{user.role}</p>
+        </div>
+        <ChevronsUpDown className="w-3.5 h-3.5 text-ink-faint shrink-0" />
       </button>
     </div>
   );

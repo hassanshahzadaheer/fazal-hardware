@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { HashRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import TopBar from './components/layout/TopBar';
 import Sidebar from "./components/layout/Sidebar";
 import { NotificationProvider } from "./components/shared/NotificationProvider";
 import { ConfirmDialogProvider } from "./components/ui";
@@ -60,7 +61,8 @@ function ProtectedShell() {
     <div className="min-h-screen flex bg-canvas font-sans">
       <Sidebar />
       <main className="flex-1 min-w-0 overflow-x-auto">
-        <div className="px-8 pt-4 empty:hidden"><LicenseBanner /></div>
+        <TopBar />
+        <div className="px-8 empty:hidden"><LicenseBanner /></div>
         <Outlet />
       </main>
     </div>

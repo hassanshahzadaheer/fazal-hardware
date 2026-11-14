@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, PackageSearch } from 'lucide-react';
+import { Pencil, Trash2, PackageSearch } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
-import ProductFormDialog from './ProductFormDialog';
+import ProductFormPanel from './ProductFormPanel';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Button, EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar, Badge, Pagination } from '../../components/ui';
+import { EmptyState, Tooltip, confirmDialog, PageHeader, Toolbar, Badge, Pagination } from '../../components/ui';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
 function formatPKR(amount: number | null): string {
@@ -46,8 +46,8 @@ const STOCK_DOT: Record<StockStatus, string> = {
 export default function ProductsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ProductWithNames | null>(null);
+  const [stockFilter, setStockFilter] = useState<'all' | StockStatus>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -76,14 +76,22 @@ export default function ProductsPage() {
     if (!products) return [];
     const q = search.trim().toLowerCase();
     // Newest first, so a just-added product lands at the top of the list.
-    const newestFirst = [...products].sort((a, b) => b.id - a.id);
+    const newestFirst = [...products]
+      .sort((a, b) => b.id - a.id)
+      .filter((p) => stockFilter === 'all' || stockStatus(p) === stockFilter);
     if (!q) return newestFirst;
     return newestFirst.filter((p) =>
       [p.productCode, p.name, p.categoryName, p.brandName, p.barcode, p.rackLocation]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(q))
     );
-  }, [products, search]);
+  }, [products, search, stockFilter]);
+
+  const counts = useMemo(() => {
+    const c = { all: products?.length ?? 0, ok: 0, low: 0, out: 0 };
+    products?.forEach((p) => { c[stockStatus(p)] += 1; });
+    return c;
+  }, [products]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -97,18 +105,14 @@ export default function ProductsPage() {
     setPage(1);
   };
 
-  const openCreate = () => {
-    setEditing(null);
-    setDialogOpen(true);
-  };
-
   const openEdit = (product: ProductWithNames) => {
     setEditing(product);
-    setDialogOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaved = () => {
-    setDialogOpen(false);
+    setEditing(null);
     queryClient.invalidateQueries({ queryKey: ['products'] });
   };
 
@@ -119,27 +123,47 @@ export default function ProductsPage() {
       confirmLabel: 'Delete',
       tone: 'danger',
     });
-    if (confirmed) deleteMutation.mutate(product.id);
+    if (confirmed) {
+      if (editing?.id === product.id) setEditing(null);
+      deleteMutation.mutate(product.id);
+    }
   };
 
   return (
-    <div className="p-8 max-w-[1400px]">
+    <div className="px-8 pb-8 max-w-[1400px]">
       <PageHeader
         title="Products"
         count={products?.length ?? 0}
         subtitle="Catalog, pricing, and stock levels for every item you sell."
       />
 
-      <div className="bg-surface border border-border rounded-md overflow-hidden">
+      <ProductFormPanel product={editing} onCancelEdit={() => setEditing(null)} onSaved={handleSaved} />
+
+      <div className="bg-surface border border-border rounded-xl shadow-card overflow-hidden">
         <Toolbar
           searchValue={search}
           onSearchChange={handleSearchChange}
-          searchPlaceholder="Search by code, name, category, brand, barcode, or location…"
-          action={
-            <Button variant="primary" onClick={openCreate}>
-              <Plus className="w-4 h-4" />
-              Add Product
-            </Button>
+          searchPlaceholder="Search products…"
+          filters={
+            <div className="flex items-center gap-1 p-1 rounded-full bg-surface-sunken border border-border">
+              {([
+                ['all', 'All'],
+                ['ok', 'In stock'],
+                ['low', 'Low'],
+                ['out', 'Out'],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => { setStockFilter(key); setPage(1); }}
+                  className={`h-8 px-3.5 rounded-full text-[13px] transition-colors ${
+                    stockFilter === key ? 'bg-surface text-ink font-medium shadow-xs' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  {label} <span className="text-ink-faint tabular-nums">{counts[key]}</span>
+                </button>
+              ))}
+            </div>
           }
         />
         {isLoading ? (
@@ -148,34 +172,38 @@ export default function ProductsPage() {
           <EmptyState
             icon={PackageSearch}
             title={search ? 'No products match your search' : 'No products yet'}
-            description={search ? 'Try a different name, brand, or barcode.' : 'Add your first product to start tracking stock and pricing.'}
-            action={!search && <Button variant="primary" onClick={openCreate}><Plus className="w-4 h-4" />Add Product</Button>}
+            description={search ? 'Try a different name, brand, or barcode.' : 'Use the form above to add your first product.'}
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-3">
               <table className="w-full text-sm">
-                <thead className="bg-surface-sunken text-left text-ink-muted border-b border-border">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Product</th>
-                    <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Category / Brand</th>
-                    <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Stock</th>
-                    <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Retail / Cost</th>
-                    <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide">Location</th>
-                    <th className="px-4 py-2.5 font-medium text-[12px] uppercase tracking-wide text-right">Actions</th>
+                <thead className="text-left text-ink-muted">
+                  <tr className="bg-surface-sunken">
+                    <th className="px-5 py-3 font-medium text-[12.5px]">Product</th>
+                    <th className="px-5 py-3 font-medium text-[12.5px]">Category / Brand</th>
+                    <th className="px-5 py-3 font-medium text-[12.5px]">Stock</th>
+                    <th className="px-5 py-3 font-medium text-[12.5px]">Retail / Cost</th>
+                    <th className="px-5 py-3 font-medium text-[12.5px]">Location</th>
+                    <th className="px-5 py-3 font-medium text-[12.5px] text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/70">
                   {paged.map((product) => {
                     const status = stockStatus(product);
                     const variants = variantSummary(product);
                     const tone = AVATAR_TONES[product.id % AVATAR_TONES.length];
                     return (
-                      <tr key={product.id} className="hover:bg-surface-sunken/60 transition-colors">
-                        <td className="px-4 py-2.5">
+                      <tr
+                        key={product.id}
+                        className={`transition-colors ${
+                          editing?.id === product.id ? 'bg-accent-soft/50' : 'hover:bg-surface-sunken/60'
+                        }`}
+                      >
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <div
-                              className={`w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold shrink-0 ${tone}`}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0 ${tone}`}
                             >
                               {product.name.charAt(0).toUpperCase()}
                             </div>
@@ -188,14 +216,14 @@ export default function ProductsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-5 py-3.5">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {product.categoryName && <Badge tone="neutral">{product.categoryName}</Badge>}
                             {product.brandName && <Badge tone="accent">{product.brandName}</Badge>}
                             {!product.categoryName && !product.brandName && <span className="text-ink-faint">—</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STOCK_DOT[status]}`} />
                             <span className={status === 'ok' ? 'text-ink' : status === 'low' ? 'text-warning font-medium' : 'text-danger font-medium'}>
@@ -203,18 +231,18 @@ export default function ProductsPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-5 py-3.5">
                           <div className="text-ink font-medium tabular-nums">{formatPKR(product.retailPrice)}</div>
                           <div className="text-xs text-ink-muted tabular-nums">{formatPKR(product.costPrice)}</div>
                         </td>
-                        <td className="px-4 py-2.5 text-ink-muted">{product.rackLocation ?? '—'}</td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-5 py-3.5 text-ink-muted">{product.rackLocation ?? '—'}</td>
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
                             <Tooltip content="Edit product details">
                               <button
                                 onClick={() => openEdit(product)}
                                 aria-label={`Edit ${product.name}`}
-                                className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-md p-1.5 transition-colors"
+                                className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-full p-2 transition-colors"
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
@@ -223,7 +251,7 @@ export default function ProductsPage() {
                               <button
                                 onClick={() => handleDelete(product)}
                                 aria-label={`Delete ${product.name}`}
-                                className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-md p-1.5 transition-colors"
+                                className="text-ink-faint hover:text-danger hover:bg-danger-soft rounded-full p-2 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -249,13 +277,6 @@ export default function ProductsPage() {
           </>
         )}
       </div>
-
-      <ProductFormDialog
-        open={dialogOpen}
-        product={editing}
-        onClose={() => setDialogOpen(false)}
-        onSaved={handleSaved}
-      />
     </div>
   );
 }

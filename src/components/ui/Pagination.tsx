@@ -17,13 +17,13 @@ export default function Pagination({ page, pageSize, total, onPageChange, onPage
   const to = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-t border-border text-[12.5px] text-ink-muted">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-border text-[12.5px] text-ink-muted">
       <div className="flex items-center gap-2">
         <span>Rows per page</span>
         <Select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="!w-auto !py-1 !pr-7 !pl-2 text-[12.5px]"
+          className="!w-auto !h-8 !py-0 !pr-7 !pl-2.5 !rounded-full text-[12.5px]"
         >
           {PAGE_SIZES.map((size) => (
             <option key={size} value={size}>

@@ -1,7 +1,7 @@
 import { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, forwardRef } from 'react';
 
 const base =
-  'w-full px-3 py-2 bg-surface border border-border rounded text-sm text-ink placeholder:text-ink-faint transition-shadow duration-150 ease-standard focus:outline-none focus:border-accent focus:shadow-focus disabled:bg-surface-sunken disabled:text-ink-faint disabled:cursor-not-allowed';
+  'w-full h-10 px-3.5 bg-surface border border-border rounded-xl text-sm text-ink placeholder:text-ink-faint transition-shadow duration-150 ease-standard focus:outline-none hover:border-border-strong focus:border-ink/40 focus:shadow-focus disabled:bg-surface-sunken disabled:text-ink-faint disabled:cursor-not-allowed';
 
 const errorCls = 'border-danger focus:border-danger focus:shadow-[0_0_0_3px_rgba(220,38,38,0.12)]';
 
@@ -16,7 +16,7 @@ export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: boolean }
 >(({ className = '', error, ...rest }, ref) => (
-  <textarea ref={ref} className={`${base} ${error ? errorCls : ''} ${className}`} {...rest} />
+  <textarea ref={ref} className={`${base} !h-auto py-2.5 ${error ? errorCls : ''} ${className}`} {...rest} />
 ));
 Textarea.displayName = 'Textarea';
 

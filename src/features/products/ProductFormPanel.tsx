@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef, FormEvent, KeyboardEvent } from 'react';
+import { ChevronDown, PackagePlus, Pencil, RotateCcw, Save } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { PRODUCT_CATEGORIES } from '../../../shared/constants';
 import { ProductWithNames } from '../../../shared/types';
 import { notify } from '../../components/shared/NotificationProvider';
-import { Modal, Field, Input, SearchableSelect, Button } from '../../components/ui';
+import { Field, Input, SearchableSelect, Button } from '../../components/ui';
 
 interface Props {
-  open: boolean;
   product: ProductWithNames | null; // null = create mode
-  onClose: () => void;
+  onCancelEdit: () => void;
   onSaved: () => void;
 }
 
@@ -65,24 +65,37 @@ const DEFAULT_BASE_UNIT = 'piece';
 
 const numberOrUndefined = (v: string) => (v.trim() === '' ? undefined : Number(v));
 
-export default function ProductFormDialog({ open, product, onClose, onSaved }: Props) {
+export default function ProductFormPanel({ product, onCancelEdit, onSaved }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
+  // Load the selected product into the form (or reset to blank). Editing always expands the panel.
   useEffect(() => {
-    if (open) {
-      setForm(product ? formFromProduct(product) : emptyForm());
-      setError(null);
-      // Modal moves focus to its close button on open; hand it to the first field so the form
-      // is usable from the keyboard immediately.
+    setForm(product ? formFromProduct(product) : emptyForm());
+    setError(null);
+    if (product) {
+      setCollapsed(false);
       const t = setTimeout(() => firstFieldRef.current?.focus(), 0);
       return () => clearTimeout(t);
     }
     return undefined;
-  }, [open, product]);
+  }, [product]);
+
+  // Ctrl/Cmd+S saves from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -90,7 +103,6 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
       const res = await window.api.categories.list();
       return res.ok ? res.data : [];
     },
-    enabled: open,
   });
 
   const { data: brands } = useQuery({
@@ -99,7 +111,6 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
       const res = await window.api.brands.list();
       return res.ok ? res.data : [];
     },
-    enabled: open,
   });
 
   // Only the three client categories are offered; a product that still points at an older category
@@ -168,32 +179,61 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
       return;
     }
     notify(product ? 'Product updated' : 'Product added', 'success');
+    if (!product) {
+      // Stay ready for the next entry: blank form, cursor back on the first field.
+      setForm(emptyForm());
+      setTimeout(() => firstFieldRef.current?.focus(), 0);
+    }
     onSaved();
   };
 
+  const handleReset = () => {
+    if (product) onCancelEdit();
+    else setForm(emptyForm());
+    setError(null);
+    firstFieldRef.current?.focus();
+  };
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      size="xl"
-      title={product ? 'Edit Product' : 'Add Product'}
-      footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" form="product-form" variant="primary" loading={submitting}>
-            {product ? 'Save Changes' : 'Add Product'}
-          </Button>
-        </>
-      }
+    <div
+      className={`bg-surface border rounded-xl shadow-card mb-6 overflow-hidden transition-colors ${
+        product ? 'border-ink/30' : 'border-border'
+      }`}
     >
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+            product ? 'bg-warning-soft text-warning' : 'bg-accent-soft text-accent'
+          }`}
+        >
+          {product ? <Pencil className="w-4 h-4" /> : <PackagePlus className="w-4 h-4" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-ink truncate">
+            {product ? `Editing: ${product.name}` : 'Add Product'}
+          </h2>
+          <p className="text-xs text-ink-muted">
+            {product
+              ? 'Update the details below, then save. Pick another row to switch.'
+              : 'Fill in the details and save — the product appears in the list below.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand form' : 'Collapse form'}
+          className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-full p-2 transition-colors"
+        >
+          <ChevronDown className={`w-4 h-4 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
+        </button>
+      </div>
       <form
-        id="product-form"
         ref={formRef}
         onSubmit={handleSubmit}
         onKeyDown={handleEnterAsTab}
-        className="space-y-5"
+        hidden={collapsed}
+        className="px-6 py-5 space-y-5"
       >
         {error && (
           <div className="text-sm text-danger bg-danger-soft border border-danger/20 rounded-md px-3 py-2">
@@ -205,7 +245,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
             advances like Tab (see handleEnterAsTab); Enter on the last field submits. */}
 
         <section>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Product</h3>
+          <h3 className="text-[13px] font-semibold text-ink mb-3">Product</h3>
           <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
           <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Product Code">
@@ -268,7 +308,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
         </section>
 
         <section>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Pricing</h3>
+          <h3 className="text-[13px] font-semibold text-ink mb-3">Pricing</h3>
           <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
           <div className="col-span-12 sm:col-span-6">
             <Field label="Pur Price (PKR)">
@@ -296,7 +336,7 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
         </section>
 
         <section>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">Dimensions & Stock</h3>
+          <h3 className="text-[13px] font-semibold text-ink mb-3">Dimensions & Stock</h3>
           <div className="grid grid-cols-12 gap-x-4 gap-y-3.5">
           <div className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Field label="Length">
@@ -344,7 +384,23 @@ export default function ProductFormDialog({ open, product, onClose, onSaved }: P
           </div>
           </div>
         </section>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
+          <p className="text-xs text-ink-faint">
+            <kbd className="font-mono">Enter</kbd> moves to the next field · <kbd className="font-mono">Ctrl+S</kbd> saves
+          </p>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="secondary" onClick={handleReset}>
+              <RotateCcw className="w-4 h-4" />
+              {product ? 'Cancel edit' : 'Clear'}
+            </Button>
+            <Button type="submit" variant="primary" loading={submitting}>
+              <Save className="w-4 h-4" />
+              {product ? 'Save Changes' : 'Save Product'}
+            </Button>
+          </div>
+        </div>
       </form>
-    </Modal>
+    </div>
   );
 }

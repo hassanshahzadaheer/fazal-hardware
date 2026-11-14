@@ -8,12 +8,12 @@ module.exports = {
     extend: {
       colors: {
         // Neutral scale — cool slate, near-black/white (Linear/Notion-style base).
-        canvas: '#F7F8FA',        // app background
+        canvas: '#F3F5F7',        // app background
         surface: '#FFFFFF',       // cards, panels, modals
-        'surface-sunken': '#FAFAFB', // table headers, subtle recessed areas
+        'surface-sunken': '#F5F7F9', // table headers, subtle recessed areas
         border: {
-          DEFAULT: '#E6E8EC',
-          strong: '#D7DAE0',
+          DEFAULT: '#E8EBEF',
+          strong: '#D5D9DF',
         },
         ink: {
           DEFAULT: '#14161A',  // primary text
@@ -22,11 +22,11 @@ module.exports = {
         },
         // Single brand accent — confident blue, used sparingly for primary actions.
         accent: {
-          DEFAULT: '#2F5FEE',
-          hover: '#2347C4',
-          active: '#1C3899',
-          soft: '#EEF2FF',
-          'soft-border': '#DCE4FD',
+          DEFAULT: '#15181C',
+          hover: '#000000',
+          active: '#000000',
+          soft: '#EEF0F3',
+          'soft-border': '#E1E4E9',
         },
         success: { DEFAULT: '#16A34A', soft: '#ECFDF3' },
         warning: { DEFAULT: '#D97706', soft: '#FFFBEB' },
@@ -40,18 +40,19 @@ module.exports = {
         },
       },
       borderRadius: {
-        sm: '6px',
-        DEFAULT: '8px',
-        md: '10px',
-        lg: '14px',
-        xl: '18px',
+        sm: '8px',
+        DEFAULT: '10px',
+        md: '14px',
+        lg: '18px',
+        xl: '22px',
       },
       boxShadow: {
         xs: '0 1px 2px rgba(20, 22, 26, 0.04)',
+        card: '0 1px 2px rgba(20, 22, 26, 0.03), 0 8px 24px -12px rgba(20, 22, 26, 0.06)',
         sm: '0 1px 3px rgba(20, 22, 26, 0.06), 0 1px 2px rgba(20, 22, 26, 0.04)',
         md: '0 4px 12px rgba(20, 22, 26, 0.08), 0 1px 2px rgba(20, 22, 26, 0.04)',
         lg: '0 12px 32px rgba(20, 22, 26, 0.12), 0 2px 6px rgba(20, 22, 26, 0.06)',
-        focus: '0 0 0 3px rgba(47, 95, 238, 0.16)',
+        focus: '0 0 0 3px rgba(21, 24, 28, 0.10)',
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'sans-serif'],
