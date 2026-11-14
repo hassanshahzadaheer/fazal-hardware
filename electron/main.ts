@@ -1,9 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import log from 'electron-log';
+import log from 'electron-log/main';
 import { initDb, closeDb, getDb } from './db';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData, LicenseStatus } from '../shared/types';
 import { login } from './handlers/auth';
 import * as categoriesHandler from './handlers/categories';
 import * as brandsHandler from './handlers/brands';
@@ -21,6 +21,7 @@ import * as reportsHandler from './handlers/reports';
 import { scanInvoice } from './handlers/aiScanner';
 import { getDashboard } from './handlers/dashboard';
 import { backupNow, restoreBackup } from './handlers/backup';
+import { getLicenseStatus, importLicenseFile } from './license/store';
 import { autoUpdater } from 'electron-updater';
 
 // Loads GEMINI_API_KEY (Task 10.x, AI Scanner) from a local .env file — never
@@ -131,6 +132,24 @@ app.on('activate', () => {
 
 ipcMain.handle('app:getVersion', async (): Promise<Result<string>> => {
   return { ok: true, data: app.getVersion() };
+});
+
+// §27: Licensing & Activation — checked by the renderer before anything else
+// (even /login) renders. No internet required; see docs/Fazal_Hardware_PRD.md §27.
+ipcMain.handle('license:getStatus', async (): Promise<Result<LicenseStatus>> => {
+  return { ok: true, data: getLicenseStatus() };
+});
+
+ipcMain.handle('license:import', async (): Promise<Result<LicenseStatus>> => {
+  const picked = await dialog.showOpenDialog({
+    title: 'Select License File',
+    properties: ['openFile'],
+    filters: [{ name: 'License File', extensions: ['json'] }],
+  });
+  if (picked.canceled || picked.filePaths.length === 0) {
+    return { ok: false, error: { code: 'CANCELLED', message: 'No file selected' } };
+  }
+  return { ok: true, data: importLicenseFile(picked.filePaths[0]) };
 });
 
 ipcMain.handle('auth:login', async (_event, payload): Promise<Result<SessionUser>> => {

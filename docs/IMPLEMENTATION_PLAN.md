@@ -313,6 +313,42 @@ Rebuild Fazal Hardware as an offline-first Electron desktop app: React 18 + Vite
 ### Checkpoint — Voice Order
 - [ ] Not started. Two hard dependencies before this can be called done: (1) a live Gemini audio call actually succeeding with a real recording (resolves the webm-format unknown in Task 14.2), (2) a packaged macOS build actually granting mic access (resolves the `NSMicrophoneUsageDescription` unknown in Task 14.1) — both need your hardware/mic and a real test, same category of gap as the AI Scanner's live-key caveat and Phase 13's unbuilt installer.
 
+## Phase 15: Licensing & Activation
+
+**Goal** (per your request): a locally-verified license file gates the app
+so an unpaid install can be set to expire, without requiring internet for
+day-to-day use — see PRD §27 for the full design and accepted limitations
+(no remote kill switch, clock tampering not defended against; both explicit
+trade-offs of the "no backend" tier you chose).
+
+- [x] ~~**Task 15.1** — Pure verification core.~~
+  - `electron/license/verify.ts`: `evaluateLicenseFile(raw, publicKeyPem)` parses a `{payload, signature}` JSON file, verifies the Ed25519 signature over a fixed-key-order canonicalization of the payload, and checks `expiresAt` against the current time. Returns the `LicenseStatus` union (`valid | expired | invalid | missing`) from `shared/types`.
+  - Files: `electron/license/verify.ts`, `shared/types/index.ts` (added `LicenseStatus`).
+
+- [x] ~~**Task 15.2** — userData-backed store + IPC wiring.~~
+  - `electron/license/store.ts`: `getLicenseStatus()` reads `userData/license.json`; `importLicenseFile(path)` reads a picked file, verifies it, and only persists it as the active license when valid (an expired/invalid pick never overwrites a still-good license).
+  - `electron/main.ts`: `license:getStatus` and `license:import` IPC handlers (the latter opens `dialog.showOpenDialog`). `electron/preload.ts` + `src/global.d.ts` expose `window.api.license.{getStatus,import}`.
+
+- [x] ~~**Task 15.3** — Renderer gate.~~
+  - `src/stores/licenseStore.ts` (mirrors `authStore.ts`'s `checkAuth` pattern) + `src/features/license/LicenseLockedPage.tsx` (missing/expired/invalid messaging + "Import License File" button).
+  - `src/App.tsx`: new `RequireLicense` wrapper placed **outside** `MainAppContent`, so it gates `/login` too — an unlicensed install can't reach the sign-in screen, let alone any data.
+
+- [x] ~~**Task 15.4** — Vendor-side issuing tools (dev-only, never packaged).~~
+  - `scripts/generate-license-keypair.js` — one-time Ed25519 keypair generation; refuses to write the private key inside the repo.
+  - `scripts/issue-license.js` — signs a `{clientName, expiresAt}` payload with the private key to produce a license file to hand to a client.
+  - `electron/license/publicKey.ts` ships a placeholder public key — **must be replaced with the real one** (run `generate-license-keypair.js`, paste its output in) before issuing any license that should actually be trusted; the placeholder will reject every real signature.
+  - Not shipped: neither script is imported from `electron/main.ts`/`preload.ts`, so esbuild's bundler never pulls them into `dist-electron` regardless of the `files` whitelist.
+
+- [x] ~~**Task 15.5** — Tests.~~
+  - `electron/license/__tests__/verify.test.ts`: valid+unexpired, valid+expired, tampered payload, wrong signing key, malformed JSON, missing fields — 6/6 passing. Mirrors `aiScanner.test.ts`'s style (no mocking needed, pure function).
+  - Manually smoke-tested the full chain: generated a throwaway keypair, issued a license, verified it against `evaluateLicenseFile` directly — confirmed `valid`.
+
+### Checkpoint — Licensing
+- [x] Core mechanism built, tested, and typechecked (`tsc --noEmit` clean).
+- [ ] **Not done — before shipping to the client**: generate the *real* signing keypair (`node scripts/generate-license-keypair.js`), paste the real public key into `electron/license/publicKey.ts`, and issue the client's actual license with `scripts/issue-license.js`. Until that's done, `publicKey.ts`'s placeholder will reject every license file, including a real one.
+- [ ] Not manually clicked through in the packaged Windows build yet — the lock screen, the file-picker import flow, and "expired → re-import → unlocked" have only been verified at the pure-function level (Task 15.5), not through the actual Electron UI.
+- [ ] **Deferred, flagged in PRD §27.3, not forgotten**: the Gemini API key (§18.3) still lives in plaintext in the client's `.env` and is sent directly to Google — independent exposure from licensing, needs a vendor-side proxy if you want to close it.
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |

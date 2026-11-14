@@ -6,6 +6,10 @@ declare global {
       app: {
         getVersion(): Promise<any>;
       };
+      license: {
+        getStatus(): Promise<any>;
+        import(): Promise<any>;
+      };
       auth: {
         login(email: string, password: string): Promise<any>;
         logout(): Promise<any>;

@@ -270,6 +270,14 @@ export interface ExtractedInvoice {
   total: number | null;
 }
 
+// §27: Licensing & Activation — result of checking the signed license file
+// against the embedded public key (electron/license/verify.ts).
+export type LicenseStatus =
+  | { state: 'valid'; clientName: string; expiresAt: string }
+  | { state: 'expired'; clientName: string; expiresAt: string }
+  | { state: 'invalid' }
+  | { state: 'missing' };
+
 // §6: Dashboard aggregate, computed server-side in electron/handlers/dashboard.ts.
 export interface DashboardData {
   todayRevenue: number;

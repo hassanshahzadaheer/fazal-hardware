@@ -27,3 +27,8 @@ coverage/
 # Local runtime data
 test-data/*.db
 test-data/*.sqlite
+
+# License signing key (§27) — must never be committed; generated outside the
+# repo by scripts/generate-license-keypair.js, but ignored here as a backstop.
+*.pem
+*.license.json

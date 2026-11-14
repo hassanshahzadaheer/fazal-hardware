@@ -1678,6 +1678,52 @@ const products = await window.electronAPI.products.list();
 
 ---
 
+## 27. Licensing & Activation (internal — vendor-only, not client-facing)
+
+Not part of the client's requirements — added so the vendor (Fazal POS) can
+control access to a paid install without depending on the client's internet
+connection, consistent with §25.3's offline-first design.
+
+### 27.1 Mechanism
+- A **signed license file** (Ed25519; public key embedded in the app, private
+  key held only by the vendor, never shipped) containing `clientName` and an
+  `expiresAt` date. The app verifies the signature and expiry entirely
+  locally — no network call, no backend.
+- The vendor issues a new license file per client/renewal using
+  `scripts/issue-license.js` (requires the private key from
+  `scripts/generate-license-keypair.js`, generated once and kept outside the
+  repo) and delivers it to the client out-of-band (email/USB) for import via
+  the app's "Import License File" screen.
+- Checked on every app launch, gating the entire app — including `/login` —
+  so an unlicensed or expired install can't be used at all, not even to view
+  existing data. See `electron/license/verify.ts`, `electron/license/store.ts`.
+
+### 27.2 Known limitations (accepted for v1)
+- **No remote kill switch.** Revocation only takes effect at the expiry date
+  already baked into the issued license — there's no way to lock an install
+  early without a backend. Issuing shorter-lived licenses (e.g. monthly) is
+  the lever for enforcing payment cadence.
+- **System clock can be rolled back** to delay expiry. Not defended against
+  in v1 — would need a phone-home check against a trusted time source, which
+  requires a backend and reintroduces an internet dependency for routine use.
+- **Client-side enforcement in an Electron app is reversible** by a skilled
+  reverse engineer (the renderer gate is just JS). The real backstop is the
+  contract/relationship and the vendor's control over updates
+  (`electron-updater`, already wired per §25.5), not binary protection.
+
+### 27.3 Deliberately out of scope for v1
+- A hosted license server for real-time revocation + offline grace period.
+- Hardware/machine-fingerprint locking (to stop one license being copied to
+  a second installation).
+- Proxying the Gemini API key (§18.3) through a vendor-controlled backend —
+  currently the raw key lives in the client's local `.env`/env var and is
+  sent directly to Google per request. This is a real exposure (anyone with
+  access to the machine or its network traffic can extract and reuse the
+  key against the vendor's quota) but is independent of the licensing
+  mechanism above and was explicitly deferred, not forgotten.
+
+---
+
 ## Appendix A: File Structure (Current Web App)
 
 ```

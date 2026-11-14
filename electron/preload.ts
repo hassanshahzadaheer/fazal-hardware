@@ -1,10 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData, LicenseStatus } from '../shared/types';
 
 // IPC surface will grow here module-by-module per docs/Fazal_Hardware_PRD.md.
 contextBridge.exposeInMainWorld('api', {
   app: {
     getVersion: (): Promise<Result<string>> => ipcRenderer.invoke('app:getVersion'),
+  },
+  license: {
+    getStatus: (): Promise<Result<LicenseStatus>> => ipcRenderer.invoke('license:getStatus'),
+    import: (): Promise<Result<LicenseStatus>> => ipcRenderer.invoke('license:import'),
   },
   auth: {
     login: (email: string, password: string): Promise<Result<SessionUser>> =>
