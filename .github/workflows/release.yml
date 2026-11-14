@@ -1,0 +1,95 @@
+name: Release (Windows installer → GitHub Release draft)
+
+# Releases are cut ONLY by pushing a version tag, e.g.:
+#   npm version 1.2.0 --no-git-tag-version && git commit -am "Release 1.2.0" && git tag v1.2.0 && git push --follow-tags
+# Ordinary pushes to main never build a release and never reach customers.
+#
+# The build uploads a DRAFT GitHub Release. Customers' apps only see it after you click
+# "Publish release" on GitHub — that click is the go-live decision (and your last chance to
+# install-test the .exe from the draft). See docs/RELEASING.md.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write   # create the release + upload assets using the built-in GITHUB_TOKEN
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      FAZAL_RELEASE: '1'
+      # Public build-time values (repo Settings → Secrets and variables → Actions → Variables):
+      LICENSE_SERVER_URL: ${{ vars.LICENSE_SERVER_URL }}
+      LICENSE_PUBLIC_KEY_B64: ${{ vars.LICENSE_PUBLIC_KEY_B64 }}
+      # Code-signing secrets. Never exposed to the desktop app; electron-builder reads them from the env.
+      CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Tag must match package.json version
+        shell: bash
+        run: |
+          PKG="v$(node -p "require('./package.json').version")"
+          if [ "$PKG" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG"; exit 1
+          fi
+
+      - name: Require production licence settings
+        shell: bash
+        run: |
+          test -n "$LICENSE_SERVER_URL" || { echo "::error::Repository variable LICENSE_SERVER_URL is not set"; exit 1; }
+          test -n "$LICENSE_PUBLIC_KEY_B64" || { echo "::error::Repository variable LICENSE_PUBLIC_KEY_B64 is not set"; exit 1; }
+          # (scripts/release-config.js further rejects localhost/example URLs and non-Ed25519 keys at build time)
+
+      - name: Code signing check
+        shell: bash
+        env:
+          ALLOW_UNSIGNED: ${{ vars.ALLOW_UNSIGNED_RELEASE }}
+        run: |
+          if [ -n "$CSC_LINK" ]; then
+            echo "SIGNED=true" >> "$GITHUB_ENV"; echo "Windows code signing: ENABLED"
+          elif [ "$ALLOW_UNSIGNED" = "true" ]; then
+            echo "SIGNED=false" >> "$GITHUB_ENV"
+            echo "::warning::UNSIGNED build (ALLOW_UNSIGNED_RELEASE=true). Windows SmartScreen will warn users. Not production-ready."
+          else
+            echo "::error::No code-signing certificate (secret WIN_CSC_LINK). Add one, or set repo variable ALLOW_UNSIGNED_RELEASE=true for a pilot/test release only."; exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Test (app)
+        run: npm test
+
+      - name: Test (licence server + client protocol)
+        run: |
+          cd license-server
+          npm ci
+          npm test
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+
+      - name: Build installer and upload draft release
+        run: npm run build && npx electron-builder --win --publish always
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "### Draft release for $GITHUB_REF_NAME created"
+            echo "- Code signed: **$SIGNED**"
+            [ "$SIGNED" = "true" ] || echo "- ⚠️ UNSIGNED — pilot use only, not production-ready"
+            echo "- Next: install-test the .exe from the draft, then click **Publish release** to roll it out to customers."
+          } >> "$GITHUB_STEP_SUMMARY"

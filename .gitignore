@@ -32,3 +32,11 @@ test-data/*.sqlite
 # repo by scripts/generate-license-keypair.js, but ignored here as a backstop.
 *.pem
 *.license.json
+
+# Local migration-backup snapshots from tests
+test-data/backups/
+license-server/data/
+license-server/keys/
+
+# Local demo build/data (contains a demo signing key + app data) - never commit
+FazalDemo/

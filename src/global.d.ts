@@ -8,7 +8,27 @@ declare global {
       };
       license: {
         getStatus(): Promise<any>;
-        import(): Promise<any>;
+        activate(key: string): Promise<any>;
+        refresh(): Promise<any>;
+        deactivate(): Promise<any>;
+        onChanged(cb: (status: any) => void): () => void;
+      };
+      setup: {
+        getStatus(): Promise<any>;
+        complete(payload: unknown): Promise<any>;
+      };
+      gemini: {
+        getStatus(): Promise<any>;
+        save(key: string): Promise<any>;
+        clear(): Promise<any>;
+        test(candidate?: string): Promise<any>;
+      };
+      updater: {
+        getState(): Promise<any>;
+        check(): Promise<any>;
+        install(): Promise<any>;
+        setBillingActive(active: boolean): Promise<any>;
+        onState(cb: (state: any) => void): () => void;
       };
       auth: {
         login(email: string, password: string): Promise<any>;
@@ -55,6 +75,7 @@ declare global {
         list(): Promise<any>;
         get(id: number): Promise<any>;
         create(payload: unknown): Promise<any>;
+        update(id: number, payload: unknown): Promise<any>;
         return(id: number, items: unknown, notes?: string | null): Promise<any>;
       };
       purchases: {
@@ -94,6 +115,7 @@ declare global {
       };
       backup: {
         now(): Promise<any>;
+        exportCsv(): Promise<any>;
         restore(): Promise<any>;
       };
     };

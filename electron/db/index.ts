@@ -23,7 +23,7 @@ export function getDbPath(customPath?: string): string {
   return path.join(userDataPath, 'fazal.db');
 }
 
-export function initDb(customPath?: string): Database.Database {
+export function initDb(customPath?: string, options: { backupDir?: string } = {}): Database.Database {
   if (db && !customPath) return db;
 
   const dbPath = getDbPath(customPath);
@@ -35,12 +35,13 @@ export function initDb(customPath?: string): Database.Database {
   activeDb.pragma('journal_mode = WAL');
   activeDb.pragma('foreign_keys = ON');
 
-  // Run migrations
-  runMigrations(activeDb);
-
   // Fail fast and clearly if this file predates the Phase 0 schema reset, instead
-  // of letting a cryptic "no such column" surface deep inside some later query.
+  // of letting a cryptic "no such column" surface from a migration. Must run
+  // BEFORE migrations: later migrations assume the post-reset schema.
   assertCompatibleSchema(activeDb, dbPath);
+
+  // Snapshot the live database before touching its schema, then migrate.
+  runMigrations(activeDb, dbPath, options.backupDir);
 
   // First-run convenience: seed one admin user if the table is empty (Task 1.3).
   ensureDefaultAdmin(activeDb);
@@ -81,6 +82,10 @@ export function resolveMigrationsDir(candidates = getMigrationDirCandidates()): 
 // silently skips re-applying "already applied" versions — so catch that case
 // explicitly here rather than letting it surface as a cryptic SQL error later.
 function assertCompatibleSchema(activeDb: Database.Database, dbPath: string): void {
+  const hasHistoryTable = activeDb
+    .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations'")
+    .get();
+  if (!hasHistoryTable) return; // brand-new DB, nothing to check
   const hasMigrationHistory = activeDb.prepare('SELECT 1 FROM schema_migrations LIMIT 1').get();
   if (!hasMigrationHistory) return; // brand-new DB, nothing to check
 
@@ -108,7 +113,42 @@ function getMigrationDirCandidates(): string[] {
   ];
 }
 
-function runMigrations(activeDb: Database.Database): void {
+const MIGRATION_BACKUPS_TO_KEEP = 10;
+
+// Takes a consistent, self-contained copy of the live database (VACUUM INTO is
+// safe with WAL and concurrent readers, unlike copying the file) into
+// <userData>/backups before any schema change. Throws on failure so the caller
+// aborts the migration rather than altering data it could not snapshot.
+export function backupDatabaseBeforeMigration(
+  activeDb: Database.Database,
+  dbPath: string,
+  backupDir: string | undefined,
+  fromVersion: number,
+  toVersion: number
+): string {
+  const dir = backupDir ?? path.join(path.dirname(dbPath), 'backups');
+  fs.mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const target = path.join(dir, `pre-migration-v${fromVersion}-to-v${toVersion}-${stamp}.db`);
+  activeDb.exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
+
+  const old = fs
+    .readdirSync(dir)
+    .filter((f) => f.startsWith('pre-migration-') && f.endsWith('.db'))
+    .sort()
+    .slice(0, -MIGRATION_BACKUPS_TO_KEEP);
+  for (const f of old) {
+    try {
+      fs.unlinkSync(path.join(dir, f));
+    } catch {
+      // Best-effort retention; an undeletable old snapshot is harmless.
+    }
+  }
+  log.info(`Pre-migration backup written to ${target}`);
+  return target;
+}
+
+function runMigrations(activeDb: Database.Database, dbPath: string, backupDir?: string): void {
   // Find migration files. Source tests run from electron/db, while the bundled
   // main process runs from dist-electron and stores migrations under db/.
   const migrationsDir = resolveMigrationsDir();
@@ -125,6 +165,23 @@ function runMigrations(activeDb: Database.Database): void {
   const files = fs.readdirSync(migrationsDir)
     .filter(file => file.endsWith('.sql'))
     .sort();
+
+  const applied = new Set(
+    (activeDb.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]).map((r) => r.version)
+  );
+  const pending = files
+    .map((file) => ({ file, version: parseInt(file.match(/^(\d+)_/)?.[1] ?? '', 10) }))
+    .filter((m) => !Number.isNaN(m.version) && !applied.has(m.version));
+  // Only an EXISTING database (has applied migrations) holds data worth protecting.
+  if (pending.length > 0 && applied.size > 0) {
+    backupDatabaseBeforeMigration(
+      activeDb,
+      dbPath,
+      backupDir,
+      Math.max(...applied),
+      Math.max(...pending.map((m) => m.version))
+    );
+  }
 
   for (const file of files) {
     const versionMatch = file.match(/^(\d+)_/);

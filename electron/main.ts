@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import log from 'electron-log/main';
 import { initDb, closeDb, getDb } from './db';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData, LicenseStatus } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData, LicenseStatus, SetupStatus, UpdateState } from '../shared/types';
 import { login } from './handlers/auth';
 import * as categoriesHandler from './handlers/categories';
 import * as brandsHandler from './handlers/brands';
@@ -21,19 +21,17 @@ import * as reportsHandler from './handlers/reports';
 import { scanInvoice } from './handlers/aiScanner';
 import { getDashboard } from './handlers/dashboard';
 import { backupNow, restoreBackup } from './handlers/backup';
-import { getLicenseStatus, importLicenseFile } from './license/store';
-import { autoUpdater } from 'electron-updater';
+import * as setupHandler from './handlers/setup';
+import { exportAllCsv } from './handlers/exportData';
+import { getLicenseService } from './license/store';
+import { clearGeminiKey, getGeminiKey, getGeminiStatus, GeminiStatus, saveGeminiKey, testGeminiKey } from './secrets/gemini';
+import { checkForUpdates, getUpdateState, initUpdater, installUpdate, setBillingActive, stopUpdater } from './updater';
 
-// Loads GEMINI_API_KEY (Task 10.x, AI Scanner) from a local .env file — never
-// bundled or committed. In dev this picks up a .env at the repo root; in a
-// packaged build there is no repo root, so it also checks the per-user data
-// folder, letting an installed app pick up a key the user drops there
-// themselves without rebuilding.
-dotenv.config({ path: path.join(__dirname, '../.env') });
-try {
-  dotenv.config({ path: path.join(app.getPath('userData'), '.env'), override: false });
-} catch {
-  // app.getPath is unavailable outside a real Electron runtime; harmless here.
+// Dev only: a repo-root .env may supply GEMINI_API_KEY / FAZAL_DEV_LICENSE_BYPASS for
+// local development. Packaged builds NEVER read .env files: customers' secrets live
+// in OS-backed secure storage (electron/secrets), entered in the setup wizard/Settings.
+if (!app.isPackaged) {
+  dotenv.config({ path: path.join(__dirname, '../.env') });
 }
 
 log.initialize();
@@ -88,6 +86,9 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  // A renderer reload drops any open-bill state, so don't leave updates blocked.
+  mainWindow.webContents.on('did-start-loading', () => setBillingActive(false));
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -95,10 +96,11 @@ function createWindow() {
 
 app.on('ready', () => {
   try {
-    if (process.platform === 'darwin' && app.dock) {
+    if (!app.isPackaged && process.platform === 'darwin' && app.dock) {
       app.dock.setIcon(appIconPath);
     }
     initDb();
+    categoriesHandler.ensureProductCategories(getDb());
     createWindow();
   } catch (err) {
     log.error('Database initialization failed:', err);
@@ -106,18 +108,13 @@ app.on('ready', () => {
     return;
   }
 
-  // §25.5: check for updates on launch, download in background, prompt to
-  // install. Only in packaged builds — dev mode has no update server and
-  // electron-updater logs noisy "update server not configured" errors otherwise.
-  if (app.isPackaged) {
-    autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-      log.warn('Auto-update check failed:', err);
-    });
-  }
+  // §25.5 / Settings → Updates: background check + download, user-initiated install only.
+  initUpdater(() => mainWindow);
+  startLicenseChecks();
 });
 
 app.on('window-all-closed', () => {
+  stopUpdater();
   closeDb();
   if (process.platform !== 'darwin') {
     app.quit();
@@ -134,25 +131,94 @@ ipcMain.handle('app:getVersion', async (): Promise<Result<string>> => {
   return { ok: true, data: app.getVersion() };
 });
 
-// §27: Licensing & Activation — checked by the renderer before anything else
-// (even /login) renders. No internet required; see docs/Fazal_Hardware_PRD.md §27.
-ipcMain.handle('license:getStatus', async (): Promise<Result<LicenseStatus>> => {
-  return { ok: true, data: getLicenseStatus() };
-});
-
-ipcMain.handle('license:import', async (): Promise<Result<LicenseStatus>> => {
-  const picked = await dialog.showOpenDialog({
-    title: 'Select License File',
-    properties: ['openFile'],
-    filters: [{ name: 'License File', extensions: ['json'] }],
-  });
-  if (picked.canceled || picked.filePaths.length === 0) {
-    return { ok: false, error: { code: 'CANCELLED', message: 'No file selected' } };
+// ---------------------------------------------------------------------------
+// Licensing (§27). Status is evaluated LOCALLY from a signed lease, so the POS
+// works offline; the server is only contacted to activate and to re-validate.
+// ---------------------------------------------------------------------------
+function currentLicense(): LicenseStatus {
+  // Dev convenience only; impossible in a packaged build.
+  if (!app.isPackaged && process.env.FAZAL_DEV_LICENSE_BYPASS === '1') {
+    return { state: 'active', customerName: 'DEV BYPASS', expiresAt: null, lastCheckedAt: new Date().toISOString(), graceEndsAt: new Date(Date.now() + 864e5).toISOString(), graceDays: 1, recheckDue: false };
   }
-  return { ok: true, data: importLicenseFile(picked.filePaths[0]) };
+  return getLicenseService().getStatus();
+}
+
+let lastBroadcast = '';
+function broadcastLicense(): void {
+  const status = currentLicense();
+  const sig = JSON.stringify(status);
+  if (sig !== lastBroadcast) {
+    lastBroadcast = sig;
+    mainWindow?.webContents.send('license:changed', status);
+  }
+}
+
+function startLicenseChecks(): void {
+  const tick = async () => {
+    try {
+      await getLicenseService().refreshIfDue();
+    } catch (err) {
+      log.warn('Licence recheck failed:', err);
+    }
+    broadcastLicense();
+  };
+  setTimeout(tick, 5_000).unref();
+  setInterval(tick, 30 * 60_000).unref(); // cheap: only hits the network when the lease says a recheck is due
+}
+
+// Restricted / unactivated installs keep full READ access plus backup & export, but
+// can't create or change business records. Nothing here ever deletes data.
+const MUTATING_CHANNEL = /:(create|update|delete|adjust|return|restore)$/;
+function handle(channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => any): void {
+  ipcMain.handle(channel, (event, ...args) => {
+    if (MUTATING_CHANNEL.test(channel) && currentLicense().state !== 'active') {
+      return { ok: false, error: { code: 'LICENSE_RESTRICTED', message: 'Your licence is not active, so changes are disabled. You can still view, back up and export your data.' } };
+    }
+    return listener(event, ...args);
+  });
+}
+
+handle('license:getStatus', async (): Promise<Result<LicenseStatus>> => ({ ok: true, data: currentLicense() }));
+
+handle('license:activate', async (_event, key: string): Promise<Result<LicenseStatus>> => {
+  const res = await getLicenseService().activate(String(key ?? ''));
+  broadcastLicense();
+  return res;
 });
 
-ipcMain.handle('auth:login', async (_event, payload): Promise<Result<SessionUser>> => {
+handle('license:refresh', async (): Promise<Result<LicenseStatus>> => {
+  const res = await getLicenseService().refresh();
+  broadcastLicense();
+  return res.ok ? res : { ...res };
+});
+
+handle('license:deactivate', async (): Promise<Result<null>> => {
+  const res = await getLicenseService().deactivate();
+  broadcastLicense();
+  return res;
+});
+
+// ---- First-run setup --------------------------------------------------------
+handle('setup:getStatus', async (): Promise<Result<SetupStatus>> => setupHandler.getStatus(getDb()));
+handle('setup:complete', async (_event, payload): Promise<Result<SetupStatus>> => setupHandler.complete(getDb(), payload));
+
+// ---- Gemini key (secure storage; never returned to the renderer) -----------
+handle('gemini:getStatus', async (): Promise<Result<GeminiStatus>> => ({ ok: true, data: getGeminiStatus() }));
+handle('gemini:save', async (_event, key: string): Promise<Result<GeminiStatus>> => saveGeminiKey(key));
+handle('gemini:clear', async (): Promise<Result<GeminiStatus>> => clearGeminiKey());
+handle('gemini:test', async (_event, candidate?: string): Promise<Result<null>> => testGeminiKey(candidate));
+
+// ---- Updates ---------------------------------------------------------------
+handle('updater:getState', async (): Promise<Result<UpdateState>> => ({ ok: true, data: getUpdateState() }));
+handle('updater:check', async (): Promise<Result<UpdateState>> => checkForUpdates());
+handle('updater:install', async (): Promise<Result<null>> => installUpdate());
+// The renderer reports whether a bill is open so an update can never restart mid-sale.
+handle('updater:setBillingActive', async (_event, active: boolean): Promise<Result<null>> => {
+  setBillingActive(Boolean(active));
+  return { ok: true, data: null };
+});
+
+handle('auth:login', async (_event, payload): Promise<Result<SessionUser>> => {
   const result = login(getDb(), payload);
   if (result.ok) {
     sessionUser = result.data;
@@ -163,196 +229,200 @@ ipcMain.handle('auth:login', async (_event, payload): Promise<Result<SessionUser
   return result;
 });
 
-ipcMain.handle('auth:logout', async (): Promise<Result<null>> => {
+handle('auth:logout', async (): Promise<Result<null>> => {
   log.info(`User logged out: ${sessionUser?.email ?? 'unknown'}`);
   sessionUser = null;
   return { ok: true, data: null };
 });
 
-ipcMain.handle('auth:getCurrentUser', async (): Promise<Result<SessionUser | null>> => {
+handle('auth:getCurrentUser', async (): Promise<Result<SessionUser | null>> => {
   return { ok: true, data: sessionUser };
 });
 
-ipcMain.handle('categories:list', async (): Promise<Result<Category[]>> => {
+handle('categories:list', async (): Promise<Result<Category[]>> => {
   return categoriesHandler.list(getDb());
 });
 
-ipcMain.handle('categories:create', async (_event, payload): Promise<Result<Category>> => {
+handle('categories:create', async (_event, payload): Promise<Result<Category>> => {
   return categoriesHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('categories:delete', async (_event, id): Promise<Result<null>> => {
+handle('categories:delete', async (_event, id): Promise<Result<null>> => {
   return categoriesHandler.remove(getDb(), id);
 });
 
-ipcMain.handle('brands:list', async (): Promise<Result<Brand[]>> => {
+handle('brands:list', async (): Promise<Result<Brand[]>> => {
   return brandsHandler.list(getDb());
 });
 
-ipcMain.handle('brands:create', async (_event, payload): Promise<Result<Brand>> => {
+handle('brands:create', async (_event, payload): Promise<Result<Brand>> => {
   return brandsHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('brands:delete', async (_event, id): Promise<Result<null>> => {
+handle('brands:delete', async (_event, id): Promise<Result<null>> => {
   return brandsHandler.remove(getDb(), id);
 });
 
-ipcMain.handle('settings:get', async (): Promise<Result<Settings>> => {
+handle('settings:get', async (): Promise<Result<Settings>> => {
   return settingsHandler.get(getDb());
 });
 
-ipcMain.handle('settings:update', async (_event, payload): Promise<Result<Settings>> => {
+handle('settings:update', async (_event, payload): Promise<Result<Settings>> => {
   return settingsHandler.update(getDb(), payload);
 });
 
-ipcMain.handle('products:list', async (): Promise<Result<ProductWithNames[]>> => {
+handle('products:list', async (): Promise<Result<ProductWithNames[]>> => {
   return productsHandler.list(getDb());
 });
 
-ipcMain.handle('products:create', async (_event, payload): Promise<Result<ProductWithNames>> => {
+handle('products:create', async (_event, payload): Promise<Result<ProductWithNames>> => {
   return productsHandler.create(getDb(), payload);
 });
 
-ipcMain.handle(
+handle(
   'products:update',
   async (_event, { id, payload }): Promise<Result<ProductWithNames>> => {
     return productsHandler.update(getDb(), id, payload);
   }
 );
 
-ipcMain.handle('products:delete', async (_event, id): Promise<Result<null>> => {
+handle('products:delete', async (_event, id): Promise<Result<null>> => {
   return productsHandler.remove(getDb(), id);
 });
 
-ipcMain.handle('customers:list', async (): Promise<Result<Customer[]>> => {
+handle('customers:list', async (): Promise<Result<Customer[]>> => {
   return customersHandler.list(getDb());
 });
 
-ipcMain.handle('customers:create', async (_event, payload): Promise<Result<Customer>> => {
+handle('customers:create', async (_event, payload): Promise<Result<Customer>> => {
   return customersHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('customers:update', async (_event, { id, payload }): Promise<Result<Customer>> => {
+handle('customers:update', async (_event, { id, payload }): Promise<Result<Customer>> => {
   return customersHandler.update(getDb(), id, payload);
 });
 
-ipcMain.handle('customers:delete', async (_event, id): Promise<Result<null>> => {
+handle('customers:delete', async (_event, id): Promise<Result<null>> => {
   return customersHandler.remove(getDb(), id);
 });
 
-ipcMain.handle('suppliers:list', async (): Promise<Result<Supplier[]>> => {
+handle('suppliers:list', async (): Promise<Result<Supplier[]>> => {
   return suppliersHandler.list(getDb());
 });
 
-ipcMain.handle('suppliers:create', async (_event, payload): Promise<Result<Supplier>> => {
+handle('suppliers:create', async (_event, payload): Promise<Result<Supplier>> => {
   return suppliersHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('suppliers:update', async (_event, { id, payload }): Promise<Result<Supplier>> => {
+handle('suppliers:update', async (_event, { id, payload }): Promise<Result<Supplier>> => {
   return suppliersHandler.update(getDb(), id, payload);
 });
 
-ipcMain.handle('suppliers:delete', async (_event, id): Promise<Result<null>> => {
+handle('suppliers:delete', async (_event, id): Promise<Result<null>> => {
   return suppliersHandler.remove(getDb(), id);
 });
 
-ipcMain.handle('stock:adjust', async (_event, payload): Promise<Result<StockMovement>> => {
+handle('stock:adjust', async (_event, payload): Promise<Result<StockMovement>> => {
   return stockHandler.adjust(getDb(), payload);
 });
 
-ipcMain.handle('stock:history', async (_event, productId): Promise<Result<StockMovement[]>> => {
+handle('stock:history', async (_event, productId): Promise<Result<StockMovement[]>> => {
   return stockHandler.history(getDb(), productId);
 });
 
-ipcMain.handle('sales:list', async (): Promise<Result<SaleInvoice[]>> => {
+handle('sales:list', async (): Promise<Result<SaleInvoice[]>> => {
   return salesHandler.list(getDb());
 });
 
-ipcMain.handle('sales:get', async (_event, id): Promise<Result<SaleInvoice>> => {
+handle('sales:get', async (_event, id): Promise<Result<SaleInvoice>> => {
   return salesHandler.get(getDb(), id);
 });
 
-ipcMain.handle('sales:create', async (_event, payload): Promise<Result<SaleInvoice>> => {
+handle('sales:create', async (_event, payload): Promise<Result<SaleInvoice>> => {
   return salesHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('sales:return', async (_event, { id, items, notes }): Promise<Result<SaleInvoice>> => {
+handle('sales:update', async (_event, { id, payload }): Promise<Result<SaleInvoice>> => {
+  return salesHandler.update(getDb(), id, payload);
+});
+
+handle('sales:return', async (_event, { id, items, notes }): Promise<Result<SaleInvoice>> => {
   return salesHandler.returnSale(getDb(), id, items, notes);
 });
 
-ipcMain.handle('purchases:list', async (): Promise<Result<PurchaseOrder[]>> => {
+handle('purchases:list', async (): Promise<Result<PurchaseOrder[]>> => {
   return purchasesHandler.list(getDb());
 });
 
-ipcMain.handle('purchases:get', async (_event, id): Promise<Result<PurchaseOrder>> => {
+handle('purchases:get', async (_event, id): Promise<Result<PurchaseOrder>> => {
   return purchasesHandler.get(getDb(), id);
 });
 
-ipcMain.handle('purchases:create', async (_event, payload): Promise<Result<PurchaseOrder>> => {
+handle('purchases:create', async (_event, payload): Promise<Result<PurchaseOrder>> => {
   return purchasesHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('payments:list', async (): Promise<Result<Payment[]>> => {
+handle('payments:list', async (): Promise<Result<Payment[]>> => {
   return paymentsHandler.list(getDb());
 });
 
-ipcMain.handle('payments:create', async (_event, payload): Promise<Result<Payment>> => {
+handle('payments:create', async (_event, payload): Promise<Result<Payment>> => {
   return paymentsHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('quotations:list', async (): Promise<Result<Quotation[]>> => {
+handle('quotations:list', async (): Promise<Result<Quotation[]>> => {
   return quotationsHandler.list(getDb());
 });
 
-ipcMain.handle('quotations:get', async (_event, id): Promise<Result<Quotation>> => {
+handle('quotations:get', async (_event, id): Promise<Result<Quotation>> => {
   return quotationsHandler.get(getDb(), id);
 });
 
-ipcMain.handle('quotations:create', async (_event, payload): Promise<Result<Quotation>> => {
+handle('quotations:create', async (_event, payload): Promise<Result<Quotation>> => {
   return quotationsHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('expenses:list', async (): Promise<Result<Expense[]>> => {
+handle('expenses:list', async (): Promise<Result<Expense[]>> => {
   return expensesHandler.list(getDb());
 });
 
-ipcMain.handle('expenses:create', async (_event, payload): Promise<Result<Expense>> => {
+handle('expenses:create', async (_event, payload): Promise<Result<Expense>> => {
   return expensesHandler.create(getDb(), payload);
 });
 
-ipcMain.handle('expenses:update', async (_event, { id, payload }): Promise<Result<Expense>> => {
+handle('expenses:update', async (_event, { id, payload }): Promise<Result<Expense>> => {
   return expensesHandler.update(getDb(), id, payload);
 });
 
-ipcMain.handle('expenses:delete', async (_event, id): Promise<Result<null>> => {
+handle('expenses:delete', async (_event, id): Promise<Result<null>> => {
   return expensesHandler.remove(getDb(), id);
 });
 
-ipcMain.handle('reports:summary', async (): Promise<Result<ReportSummary>> => {
+handle('reports:summary', async (): Promise<Result<ReportSummary>> => {
   return reportsHandler.getSummary(getDb());
 });
 
-ipcMain.handle('reports:salesByDay', async (_event, days): Promise<Result<SalesByDay[]>> => {
+handle('reports:salesByDay', async (_event, days): Promise<Result<SalesByDay[]>> => {
   return reportsHandler.getSalesByDay(getDb(), days ?? 7);
 });
 
-ipcMain.handle('reports:topProducts', async (): Promise<Result<TopProduct[]>> => {
+handle('reports:topProducts', async (): Promise<Result<TopProduct[]>> => {
   return reportsHandler.getTopProducts(getDb());
 });
 
-ipcMain.handle('reports:lowStock', async (): Promise<Result<LowStockRow[]>> => {
+handle('reports:lowStock', async (): Promise<Result<LowStockRow[]>> => {
   return reportsHandler.getLowStock(getDb());
 });
 
-ipcMain.handle('reports:receivables', async (): Promise<Result<BalanceRow[]>> => {
+handle('reports:receivables', async (): Promise<Result<BalanceRow[]>> => {
   return reportsHandler.getReceivables(getDb());
 });
 
-ipcMain.handle('reports:payables', async (): Promise<Result<BalanceRow[]>> => {
+handle('reports:payables', async (): Promise<Result<BalanceRow[]>> => {
   return reportsHandler.getPayables(getDb());
 });
 
-ipcMain.handle('ai:selectFile', async (): Promise<Result<string | null>> => {
+handle('ai:selectFile', async (): Promise<Result<string | null>> => {
   if (!mainWindow) return { ok: true, data: null };
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile'],
@@ -364,18 +434,32 @@ ipcMain.handle('ai:selectFile', async (): Promise<Result<string | null>> => {
   return { ok: true, data: result.filePaths[0] };
 });
 
-ipcMain.handle('ai:scan', async (_event, filePath): Promise<Result<ExtractedInvoice>> => {
-  return scanInvoice(filePath);
+handle('ai:scan', async (_event, filePath): Promise<Result<ExtractedInvoice>> => {
+  return scanInvoice(filePath, getGeminiKey(!app.isPackaged));
 });
 
-ipcMain.handle('dashboard:get', async (): Promise<Result<DashboardData>> => {
+handle('dashboard:get', async (): Promise<Result<DashboardData>> => {
   return getDashboard(getDb());
 });
 
-ipcMain.handle('backup:now', async (): Promise<Result<string>> => {
+handle('backup:now', async (): Promise<Result<string>> => {
   return backupNow();
 });
 
-ipcMain.handle('backup:restore', async (): Promise<Result<null>> => {
+handle('backup:exportCsv', async (): Promise<Result<string>> => {
+  const picked = await dialog.showOpenDialog({ title: 'Choose a folder for the export', properties: ['openDirectory', 'createDirectory'] });
+  if (picked.canceled || picked.filePaths.length === 0) {
+    return { ok: false, error: { code: 'CANCELLED', message: 'Export cancelled' } };
+  }
+  try {
+    const out = exportAllCsv(getDb(), picked.filePaths[0]);
+    log.info(`Data exported to ${out.dir} (${out.tables} tables)`);
+    return { ok: true, data: out.dir };
+  } catch (err: any) {
+    return { ok: false, error: { code: 'EXPORT_FAILED', message: err.message ?? 'Export failed' } };
+  }
+});
+
+handle('backup:restore', async (): Promise<Result<null>> => {
   return restoreBackup();
 });

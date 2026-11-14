@@ -1,32 +1,36 @@
 import { create } from 'zustand';
-import { LicenseStatus } from '../../shared/types';
+import { LicenseStatus, SetupStatus } from '../../shared/types';
 
-interface LicenseState {
-  status: LicenseStatus | null;
+// App-level gate state: licence status (evaluated locally in the main process) and
+// first-run setup status. `loading` stays true until both are known.
+interface GateState {
+  license: LicenseStatus | null;
+  setup: SetupStatus | null;
   loading: boolean;
-  checkLicense: () => Promise<void>;
-  importLicense: () => Promise<void>;
+  load: () => Promise<void>;
+  setLicense: (s: LicenseStatus) => void;
+  setSetup: (s: SetupStatus) => void;
+  subscribe: () => () => void;
 }
 
-export const useLicenseStore = create<LicenseState>((set) => ({
-  status: null,
+export const useGateStore = create<GateState>((set) => ({
+  license: null,
+  setup: null,
   loading: true,
 
-  checkLicense: async () => {
+  load: async () => {
     try {
-      const res = await window.api.license.getStatus();
-      set({ status: res.ok ? res.data : { state: 'invalid' }, loading: false });
+      const [lic, setup] = await Promise.all([window.api.license.getStatus(), window.api.setup.getStatus()]);
+      set({
+        license: lic.ok ? lic.data : { state: 'unactivated' },
+        setup: setup.ok ? setup.data : { setupCompleted: false, hasExistingData: false },
+        loading: false,
+      });
     } catch {
-      set({ status: { state: 'invalid' }, loading: false });
+      set({ license: { state: 'unactivated' }, setup: { setupCompleted: false, hasExistingData: false }, loading: false });
     }
   },
-
-  importLicense: async () => {
-    try {
-      const res = await window.api.license.import();
-      if (res.ok) set({ status: res.data });
-    } catch {
-      // Swallowed — status is left as-is and the user can retry the import.
-    }
-  },
+  setLicense: (license) => set({ license }),
+  setSetup: (setup) => set({ setup }),
+  subscribe: () => window.api.license.onChanged((license) => set({ license })),
 }));

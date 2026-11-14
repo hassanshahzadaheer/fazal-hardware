@@ -60,3 +60,6 @@ export type PaymentReferenceType = typeof PAYMENT_REFERENCE_TYPES[number];
 // permission matrix so the column never needs a migration to grow roles.
 export const USER_ROLES = ['admin', 'user'] as const;
 export type UserRole = typeof USER_ROLES[number];
+
+// The Product screen offers exactly these categories (client call 2026-11-14).
+export const PRODUCT_CATEGORIES = ['Wood', 'Plywood', 'Hardware'] as const;

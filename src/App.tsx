@@ -23,6 +23,9 @@ import SettingsPage from "./features/settings/SettingsPage";
 import StockPage from "./features/stock/StockPage";
 import SuppliersPage from "./features/suppliers/SuppliersPage";
 import { useAuthStore } from "./stores/authStore";
+import { useGateStore } from "./stores/licenseStore";
+import SetupWizard from "./features/setup/SetupWizard";
+import LicenseBanner from "./features/license/LicenseBanner";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +60,7 @@ function ProtectedShell() {
     <div className="min-h-screen flex bg-canvas font-sans">
       <Sidebar />
       <main className="flex-1 min-w-0 overflow-x-auto">
+        <div className="px-8 pt-4 empty:hidden"><LicenseBanner /></div>
         <Outlet />
       </main>
     </div>
@@ -65,10 +69,18 @@ function ProtectedShell() {
 
 function MainAppContent() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const { license, setup, loading: gateLoading, load, subscribe } = useGateStore();
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+    void load();
+    return subscribe();
+  }, [checkAuth, load, subscribe]);
+
+  if (gateLoading) return <Spinner />;
+  // First run (or an upgraded install that still needs activation): wizard before anything else.
+  // A restricted licence does NOT land here — it keeps the app readable (banner + Settings).
+  if (!setup?.setupCompleted || license?.state === "unactivated") return <SetupWizard />;
 
   return (
     <HashRouter>

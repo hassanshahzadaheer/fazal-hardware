@@ -1,6 +1,6 @@
 {
   "name": "fazal-pos-inventory",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Fazal POS & Inventory System",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -95,7 +95,9 @@
       "category": "Office"
     },
     "publish": {
-      "provider": "github"
+      "provider": "github",
+      "owner": "hassanshahzadaheer",
+      "repo": "fazal-hardware"
     }
   }
 }

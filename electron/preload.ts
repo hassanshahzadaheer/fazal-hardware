@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData, LicenseStatus } from '../shared/types';
+import { Result, SessionUser, Category, Brand, Settings, ProductWithNames, Customer, Supplier, StockMovement, SaleInvoice, PurchaseOrder, Payment, Quotation, Expense, ReportSummary, SalesByDay, TopProduct, LowStockRow, BalanceRow, ExtractedInvoice, DashboardData, LicenseStatus, SetupStatus, UpdateState } from '../shared/types';
 
 // IPC surface will grow here module-by-module per docs/Fazal_Hardware_PRD.md.
 contextBridge.exposeInMainWorld('api', {
@@ -8,7 +8,36 @@ contextBridge.exposeInMainWorld('api', {
   },
   license: {
     getStatus: (): Promise<Result<LicenseStatus>> => ipcRenderer.invoke('license:getStatus'),
-    import: (): Promise<Result<LicenseStatus>> => ipcRenderer.invoke('license:import'),
+    activate: (key: string): Promise<Result<LicenseStatus>> => ipcRenderer.invoke('license:activate', key),
+    refresh: (): Promise<Result<LicenseStatus>> => ipcRenderer.invoke('license:refresh'),
+    deactivate: (): Promise<Result<null>> => ipcRenderer.invoke('license:deactivate'),
+    onChanged: (cb: (s: LicenseStatus) => void): (() => void) => {
+      const l = (_e: unknown, s: LicenseStatus) => cb(s);
+      ipcRenderer.on('license:changed', l);
+      return () => ipcRenderer.removeListener('license:changed', l);
+    },
+  },
+  setup: {
+    getStatus: (): Promise<Result<SetupStatus>> => ipcRenderer.invoke('setup:getStatus'),
+    complete: (payload: unknown): Promise<Result<SetupStatus>> => ipcRenderer.invoke('setup:complete', payload),
+  },
+  gemini: {
+    getStatus: (): Promise<Result<{ configured: boolean; hint: string | null; secureStorageAvailable: boolean }>> =>
+      ipcRenderer.invoke('gemini:getStatus'),
+    save: (key: string) => ipcRenderer.invoke('gemini:save', key),
+    clear: () => ipcRenderer.invoke('gemini:clear'),
+    test: (candidate?: string): Promise<Result<null>> => ipcRenderer.invoke('gemini:test', candidate),
+  },
+  updater: {
+    getState: (): Promise<Result<UpdateState>> => ipcRenderer.invoke('updater:getState'),
+    check: (): Promise<Result<UpdateState>> => ipcRenderer.invoke('updater:check'),
+    install: (): Promise<Result<null>> => ipcRenderer.invoke('updater:install'),
+    setBillingActive: (active: boolean): Promise<Result<null>> => ipcRenderer.invoke('updater:setBillingActive', active),
+    onState: (cb: (s: UpdateState) => void): (() => void) => {
+      const l = (_e: unknown, s: UpdateState) => cb(s);
+      ipcRenderer.on('updater:state', l);
+      return () => ipcRenderer.removeListener('updater:state', l);
+    },
   },
   auth: {
     login: (email: string, password: string): Promise<Result<SessionUser>> =>
@@ -63,6 +92,8 @@ contextBridge.exposeInMainWorld('api', {
     list: (): Promise<Result<SaleInvoice[]>> => ipcRenderer.invoke('sales:list'),
     get: (id: number): Promise<Result<SaleInvoice>> => ipcRenderer.invoke('sales:get', id),
     create: (payload: unknown): Promise<Result<SaleInvoice>> => ipcRenderer.invoke('sales:create', payload),
+    update: (id: number, payload: unknown): Promise<Result<SaleInvoice>> =>
+      ipcRenderer.invoke('sales:update', { id, payload }),
     return: (id: number, items: unknown, notes?: string | null): Promise<Result<SaleInvoice>> =>
       ipcRenderer.invoke('sales:return', { id, items, notes }),
   },
@@ -104,6 +135,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   backup: {
     now: (): Promise<Result<string>> => ipcRenderer.invoke('backup:now'),
+    exportCsv: (): Promise<Result<string>> => ipcRenderer.invoke('backup:exportCsv'),
     restore: (): Promise<Result<null>> => ipcRenderer.invoke('backup:restore'),
   },
 });

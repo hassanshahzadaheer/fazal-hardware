@@ -98,3 +98,46 @@ describe('Database Initialization (Task 1.1 — Phase 1 schema)', () => {
     }).toThrow();
   });
 });
+
+describe('pre-migration backup', () => {
+  it('snapshots an existing database before applying pending migrations, and skips fresh databases', async () => {
+    const fs = await import('fs');
+    const os = await import('os');
+    const path = await import('path');
+    const Database = (await import('better-sqlite3')).default;
+    const { initDb } = await import('../index');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fazal-mig-'));
+    const backups = path.join(dir, 'backups');
+
+    // Fresh DB: nothing worth protecting, no snapshot.
+    const fresh = initDb(path.join(dir, 'fresh.db'), { backupDir: backups });
+    fresh.close();
+    expect(fs.existsSync(backups)).toBe(false);
+
+    // Existing DB at migration 1 with a live row, then "update" applies 0002+.
+    const live = path.join(dir, 'live.db');
+    const seed = initDb(live, { backupDir: path.join(dir, 'ignore') });
+    seed.exec("DELETE FROM schema_migrations WHERE version > 1");
+    seed.exec('DROP INDEX IF EXISTS idx_products_product_code');
+    for (const col of ['product_code', 'color', 'packing_size', 'min_sale_price', 'length', 'width']) {
+      seed.exec(`ALTER TABLE products DROP COLUMN ${col}`);
+    }
+    seed.exec('ALTER TABLE settings DROP COLUMN setup_completed_at');
+    seed.prepare("UPDATE settings SET company_name = 'Live Shop' WHERE id = 1").run();
+    seed.close();
+
+    const migrated = initDb(live, { backupDir: backups });
+    const files = fs.readdirSync(backups).filter((f) => f.startsWith('pre-migration-v1-to-v3'));
+    expect(files).toHaveLength(1);
+    // The snapshot holds the PRE-migration state (no setup column yet) with live data intact.
+    const snap = new Database(path.join(backups, files[0]), { readonly: true });
+    expect((snap.prepare('SELECT company_name FROM settings').get() as any).company_name).toBe('Live Shop');
+    expect((snap.pragma('table_info(settings)') as any[]).some((c) => c.name === 'setup_completed_at')).toBe(false);
+    snap.close();
+    // And the live DB kept its data and is marked setup-complete (existing install, has an admin).
+    const row = migrated.prepare('SELECT company_name, setup_completed_at FROM settings').get() as any;
+    expect(row.company_name).toBe('Live Shop');
+    expect(row.setup_completed_at).not.toBeNull();
+    migrated.close();
+  });
+});

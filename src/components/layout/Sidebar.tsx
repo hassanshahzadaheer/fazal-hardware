@@ -57,7 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Parties',
     items: [
       { label: 'Customers', to: '/customers', icon: Users },
-      { label: 'Suppliers', to: '/suppliers', icon: Truck },
+      { label: 'Company', to: '/suppliers', icon: Truck },
       { label: 'Credit Accounts', to: '/credit-accounts', icon: HandCoins },
     ],
   },

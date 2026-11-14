@@ -24,5 +24,8 @@ export default defineConfig({
     // inside vitest's default worker-thread pool (shared memory across threads).
     // Running each test file in its own process avoids it.
     pool: 'forks',
+    // The licence server is its own package with its own dependencies and test run
+    // (cd license-server && npm test); it also exercises electron/license end to end.
+    exclude: ['**/node_modules/**', 'license-server/**'],
   },
 });
