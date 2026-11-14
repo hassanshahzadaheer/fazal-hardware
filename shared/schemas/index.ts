@@ -44,7 +44,16 @@ export const supplierCreateSchema = z.object({
 });
 export const supplierUpdateSchema = supplierCreateSchema.partial();
 
+// Dashes are the only allowed separator (e.g. UV-NOVA-7946) — no commas, spaces or other symbols.
+export const PRODUCT_CODE_REGEX = /^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$/;
+
 export const productCreateSchema = z.object({
+  productCode: z
+    .string()
+    .trim()
+    .regex(PRODUCT_CODE_REGEX, 'Product Code may only contain letters, numbers and dashes (e.g. UV-NOVA-7946)')
+    .nullable()
+    .optional(),
   name: z.string().min(1, 'Product name is required').trim(),
   categoryId: z.number().int().positive().nullable().optional(),
   brandId: z.number().int().positive().nullable().optional(),
@@ -58,6 +67,11 @@ export const productCreateSchema = z.object({
   reorderLevel: z.number().nonnegative().nullable().optional(),
   rackLocation: z.string().trim().nullable().optional(),
   barcode: z.string().trim().nullable().optional(),
+  color: z.string().trim().nullable().optional(),
+  packingSize: z.string().trim().nullable().optional(),
+  minSalePrice: z.number().nonnegative().nullable().optional(),
+  length: z.number().positive().nullable().optional(),
+  width: z.number().positive().nullable().optional(),
 });
 export const productUpdateSchema = productCreateSchema.partial();
 

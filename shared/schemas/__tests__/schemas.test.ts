@@ -158,3 +158,13 @@ describe('shared/schemas — one valid/invalid pair per entity (Task 1.2)', () =
     expect(settingsUpdateSchema.safeParse({ companyName: '' }).success).toBe(false);
   });
 });
+
+describe('productCreateSchema productCode', () => {
+  const base = { name: 'Nova', baseUnit: 'piece' as const };
+  it.each(['UV-NOVA-7946', 'ABC', 'a-1'])('accepts %s', (productCode) => {
+    expect(productCreateSchema.safeParse({ ...base, productCode }).success).toBe(true);
+  });
+  it.each(['UV,NOVA,7946', 'UV NOVA', 'UV_NOVA', '-UV', 'UV-', 'UV--NOVA'])('rejects %s', (productCode) => {
+    expect(productCreateSchema.safeParse({ ...base, productCode }).success).toBe(false);
+  });
+});

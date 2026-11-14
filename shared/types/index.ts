@@ -45,6 +45,7 @@ export interface Brand {
 
 export interface Product {
   id: number;
+  productCode: string | null;
   name: string;
   categoryId: number | null;
   brandId: number | null;
@@ -58,6 +59,11 @@ export interface Product {
   reorderLevel: number | null;
   rackLocation: string | null;
   barcode: string | null;
+  color: string | null;
+  packingSize: string | null;
+  minSalePrice: number | null;
+  length: number | null;
+  width: number | null;
   stockOnHand: number;
   isActive: boolean;
   createdDate: string;

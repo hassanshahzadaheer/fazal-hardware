@@ -44,9 +44,9 @@ export default function Modal({ open, onClose, title, description, size = 'md', 
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`bg-surface rounded-lg shadow-lg w-full ${SIZE_CLS[size]} max-h-[90vh] overflow-y-auto animate-scale-in`}
+        className={`bg-surface rounded-lg shadow-lg w-full ${SIZE_CLS[size]} max-h-[90vh] flex flex-col animate-scale-in`}
       >
-        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border sticky top-0 bg-surface">
+        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border shrink-0 bg-surface rounded-t-lg">
           <div>
             <h2 id="modal-title" className="text-[15px] font-semibold text-ink">
               {title}
@@ -63,9 +63,9 @@ export default function Modal({ open, onClose, title, description, size = 'md', 
           </button>
         </div>
 
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto min-h-0 flex-1">{children}</div>
 
-        {footer && <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-surface-sunken/60">{footer}</div>}
+        {footer && <div className="flex justify-end gap-2 px-6 py-4 shrink-0 rounded-b-lg border-t border-border bg-surface-sunken/60">{footer}</div>}
       </div>
     </div>
   );

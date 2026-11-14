@@ -75,9 +75,11 @@ export default function ProductsPage() {
   const filtered = useMemo(() => {
     if (!products) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) =>
-      [p.name, p.categoryName, p.brandName, p.barcode, p.rackLocation]
+    // Newest first, so a just-added product lands at the top of the list.
+    const newestFirst = [...products].sort((a, b) => b.id - a.id);
+    if (!q) return newestFirst;
+    return newestFirst.filter((p) =>
+      [p.productCode, p.name, p.categoryName, p.brandName, p.barcode, p.rackLocation]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(q))
     );
@@ -132,7 +134,7 @@ export default function ProductsPage() {
         <Toolbar
           searchValue={search}
           onSearchChange={handleSearchChange}
-          searchPlaceholder="Search by name, category, brand, barcode, or location…"
+          searchPlaceholder="Search by code, name, category, brand, barcode, or location…"
           action={
             <Button variant="primary" onClick={openCreate}>
               <Plus className="w-4 h-4" />
@@ -179,6 +181,9 @@ export default function ProductsPage() {
                             </div>
                             <div className="min-w-0">
                               <div className="font-medium text-ink truncate">{product.name}</div>
+                              {product.productCode && (
+                                <div className="text-xs text-ink-muted font-mono truncate">{product.productCode}</div>
+                              )}
                               {variants && <div className="text-xs text-ink-muted truncate">{variants}</div>}
                             </div>
                           </div>
