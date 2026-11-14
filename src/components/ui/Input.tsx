@@ -3,7 +3,8 @@ import { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, forw
 const base =
   'w-full h-10 px-3.5 bg-surface border border-border rounded-xl text-sm text-ink placeholder:text-ink-faint transition-shadow duration-150 ease-standard focus:outline-none hover:border-border-strong focus:border-ink/40 focus:shadow-focus disabled:bg-surface-sunken disabled:text-ink-faint disabled:cursor-not-allowed';
 
-const errorCls = 'border-danger focus:border-danger focus:shadow-[0_0_0_3px_rgba(220,38,38,0.12)]';
+const errorCls =
+  '!border-danger bg-danger-soft/40 hover:!border-danger focus:!border-danger focus:shadow-[0_0_0_3px_rgba(220,38,38,0.15)]';
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { error?: boolean }>(
   ({ className = '', error, ...rest }, ref) => (

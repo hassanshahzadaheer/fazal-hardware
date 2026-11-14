@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Trash2, PackageSearch } from 'lucide-react';
+import { Copy, Pencil, Trash2, PackageSearch } from 'lucide-react';
 import { ProductWithNames } from '../../../shared/types';
 import ProductFormPanel from './ProductFormPanel';
 import { notify } from '../../components/shared/NotificationProvider';
@@ -47,6 +47,7 @@ export default function ProductsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<ProductWithNames | null>(null);
+  const [prefill, setPrefill] = useState<{ key: number; product: ProductWithNames } | null>(null);
   const [stockFilter, setStockFilter] = useState<'all' | StockStatus>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -105,7 +106,15 @@ export default function ProductsPage() {
     setPage(1);
   };
 
+  const openDuplicate = (product: ProductWithNames) => {
+    setEditing(null);
+    setPrefill({ key: Date.now(), product });
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const openEdit = (product: ProductWithNames) => {
+    setPrefill(null);
     setEditing(product);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -113,6 +122,7 @@ export default function ProductsPage() {
 
   const handleSaved = () => {
     setEditing(null);
+    setPrefill(null);
     queryClient.invalidateQueries({ queryKey: ['products'] });
   };
 
@@ -137,7 +147,7 @@ export default function ProductsPage() {
         subtitle="Catalog, pricing, and stock levels for every item you sell."
       />
 
-      <ProductFormPanel product={editing} onCancelEdit={() => setEditing(null)} onSaved={handleSaved} />
+      <ProductFormPanel product={editing} prefill={prefill} onCancelEdit={() => setEditing(null)} onSaved={handleSaved} />
 
       <div className="bg-surface border border-border rounded-xl shadow-card overflow-hidden">
         <Toolbar
@@ -245,6 +255,15 @@ export default function ProductsPage() {
                                 className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-full p-2 transition-colors"
                               >
                                 <Pencil className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Duplicate as a new product">
+                              <button
+                                onClick={() => openDuplicate(product)}
+                                aria-label={`Duplicate ${product.name}`}
+                                className="text-ink-faint hover:text-ink hover:bg-surface-sunken rounded-full p-2 transition-colors"
+                              >
+                                <Copy className="w-4 h-4" />
                               </button>
                             </Tooltip>
                             <Tooltip content="Delete this product permanently">
